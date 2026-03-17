@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>NavHub — Maritime Navigation Suite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600&family=JetBrains+Mono:wght@300;400;600&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+/* ===================== TOKENS ===================== */
+:root {
+  --bg:        #04101c;
+  --bg2:       #061624;
+  --panel:     #091e30;
+  --panel2:    #0c2440;
+  --border:    #12304a;
+  --border2:   #1a4060;
+  --accent:    #00d4aa;
+  --accent2:   #ff8c42;
+  --accent3:   #4a9eff;
+  --warn:      #ffd700;
+  --text:      #c8ddf0;
+  --muted:     #3d6080;
+  --muted2:    #5a7a96;
+  --danger:    #ef4444;
+  --success:   #10b981;
+  --font-hud:  'Teko', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-body: 'Noto Sans', sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:var(--font-body); }
+
+/* ===================== GRID NOISE OVERLAY ===================== */
+body::before {
+  content:'';
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(0,212,170,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,170,0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ===================== APP SHELL ===================== */
+#app { position:relative; z-index:1; display:flex; flex-direction:column; height:100dvh; }
+
+/* ===================== TOP BAR ===================== */
+#topbar {
+  flex-shrink:0;
+  background:var(--panel);
+  border-bottom:1px solid var(--border);
+  padding:0 14px;
+  height:52px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  position:relative;
+  overflow:hidden;
+}
+#topbar::after {
+  content:'';
+  position:absolute; bottom:0; left:0; right:0;
+  height:1px;
+  background:linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity:0.4;
+}
+
+.logo-mark {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-shrink:0;
+}
+.logo-icon {
+  width:32px; height:32px;
+  border:1.5px solid var(--accent);
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  position:relative;
+  flex-shrink:0;
+}
+.logo-icon::before {
+  content:'';
+  position:absolute;
+  width:1px; height:60%; background:var(--accent);
+  top:20%; left:50%; transform:translateX(-50%);
+}
+.logo-icon::after {
+  content:'';
+  position:absolute;
+  width:60%; height:1px; background:var(--accent);
+  top:50%; left:20%;
+}
+.logo-cross {
+  position:absolute;
+  width:8px; height:8px;
+  border-radius:50%;
+  background:var(--accent);
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+}
+.logo-text {
+  font-family:var(--font-hud);
+  font-size:24px;
+  font-weight:600;
+  letter-spacing:4px;
+  color:var(--accent);
+  line-height:1;
+}
+.logo-sub {
+  font-family:var(--font-mono);
+  font-size:8px;
+  color:var(--muted);
+  letter-spacing:2px;
+  line-height:1;
+  margin-top:2px;
+}
+
+.topbar-spacer { flex:1; }
+
+#clock-display {
+  font-family:var(--font-mono);
+  font-size:12px;
+  color:var(--accent3);
+  letter-spacing:1px;
+  text-align:right;
+}
+#clock-display .clock-time { font-size:16px; font-weight:600; }
+#clock-display .clock-date { font-size:9px; color:var(--muted); margin-top:1px; }
+
+/* ===================== MODULE NAVBAR ===================== */
+#nav-bar {
+  flex-shrink:0;
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  gap:0;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+#nav-bar::-webkit-scrollbar { display:none; }
+
+.nav-item {
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:10px 16px 8px;
+  cursor:pointer;
+  border-bottom:2px solid transparent;
+  transition:all 0.18s;
+  gap:3px;
+  min-width:70px;
+  position:relative;
+}
+.nav-item:hover { background:rgba(0,212,170,0.04); }
+.nav-item.active {
+  border-bottom-color:var(--accent);
+  background:rgba(0,212,170,0.06);
+}
+.nav-item.active .nav-icon { color:var(--accent); }
+.nav-item.active .nav-label { color:var(--accent); }
+
+.nav-icon {
+  font-size:18px;
+  line-height:1;
+  color:var(--muted2);
+  transition:color 0.18s;
+}
+.nav-label {
+  font-family:var(--font-mono);
+  font-size:8px;
+  letter-spacing:1px;
+  color:var(--muted);
+  transition:color 0.18s;
+  white-space:nowrap;
+}
+
+/* home special */
+.nav-item.nav-home .nav-icon { color:var(--accent2); }
+.nav-item.nav-home.active .nav-icon { color:var(--accent2); }
+.nav-item.nav-home.active { border-bottom-color:var(--accent2); background:rgba(255,140,66,0.06); }
+.nav-item.nav-home .nav-label { color:var(--muted); }
+.nav-item.nav-home.active .nav-label { color:var(--accent2); }
+
+/* ===================== CONTENT AREA ===================== */
+#content {
+  flex:1;
+  min-height:0;
+  position:relative;
+}
+
+.module-frame {
+  display:none;
+  width:100%;
+  height:100%;
+  border:none;
+  background:var(--bg);
+}
+.module-frame.active { display:block; }
+
+/* ===================== HOME SCREEN ===================== */
+#home-screen {
+  display:none;
+  width:100%;
+  height:100%;
+  overflow-y:auto;
+  padding:20px 16px;
+}
+#home-screen.active { display:block; }
+
+.home-greeting {
+  font-family:var(--font-hud);
+  font-size:28px;
+  letter-spacing:3px;
+  color:var(--text);
+  margin-bottom:2px;
+}
+.home-greeting span { color:var(--accent2); }
+
+.home-sub {
+  font-family:var(--font-mono);
+  font-size:10px;
+  color:var(--muted);
+  letter-spacing:1px;
+  margin-bottom:24px;
+}
+
+/* status strip */
+.status-strip {
+  display:flex;
+  gap:8px;
+  margin-bottom:24px;
+  flex-wrap:wrap;
+}
+.status-pill {
+  display:flex;
+  align-items:center;
+  gap:5px;
+  padding:5px 10px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:20px;
+  font-family:var(--font-mono);
+  font-size:9px;
+  color:var(--muted2);
+}
+.status-dot {
+  width:6px; height:6px;
+  border-radius:50%;
+  background:var(--success);
+  flex-shrink:0;
+  box-shadow:0 0 6px var(--success);
+}
+.status-dot.warn { background:var(--warn); box-shadow:0 0 6px var(--warn); }
+.status-dot.off { background:var(--muted); box-shadow:none; }
+
+/* module cards grid */
+.modules-label {
+  font-family:var(--font-mono);
+  font-size:9px;
+  letter-spacing:2px;
+  color:var(--muted);
+  margin-bottom:12px;
+  text-transform:uppercase;
+}
+
+.modules-grid {
+  display:grid;
+  grid-template-columns:repeat(2, 1fr);
+  gap:10px;
+  margin-bottom:24px;
+}
+@media(min-width:500px) { .modules-grid { grid-template-columns:repeat(3,1fr); } }
+
+.mod-card {
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:14px 12px;
+  cursor:pointer;
+  transition:all 0.18s;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  position:relative;
+  overflow:hidden;
+}
+.mod-card::before {
+  content:'';
+  position:absolute;
+  top:0; left:0; right:0;
+  height:2px;
+  background:var(--mod-color, var(--accent));
+  opacity:0;
+  transition:opacity 0.18s;
+}
+.mod-card:hover { border-color:var(--border2); transform:translateY(-1px); }
+.mod-card:hover::before { opacity:1; }
+.mod-card:active { transform:scale(0.98); }
+
+.mod-card-icon {
+  font-size:24px;
+  line-height:1;
+}
+.mod-card-name {
+  font-family:var(--font-hud);
+  font-size:17px;
+  letter-spacing:2px;
+  color:var(--text);
+  line-height:1;
+}
+.mod-card-desc {
+  font-family:var(--font-mono);
+  font-size:8px;
+  color:var(--muted);
+  line-height:1.5;
+}
+.mod-card-badge {
+  position:absolute;
+  top:10px; right:10px;
+  font-family:var(--font-mono);
+  font-size:7px;
+  letter-spacing:1px;
+  padding:2px 6px;
+  border-radius:10px;
+  background:rgba(0,212,170,0.1);
+  border:1px solid var(--accent);
+  color:var(--accent);
+}
+.mod-card-badge.soon {
+  background:rgba(93,93,93,0.15);
+  border-color:var(--muted);
+  color:var(--muted);
+}
+
+/* coming soon card */
+.mod-card.coming-soon {
+  opacity:0.45;
+  cursor:default;
+}
+.mod-card.coming-soon:hover { transform:none; }
+
+/* DIVIDER */
+.home-divider {
+  height:1px;
+  background:linear-gradient(90deg, transparent, var(--border), transparent);
+  margin:16px 0;
+}
+
+/* version footer */
+.home-footer {
+  font-family:var(--font-mono);
+  font-size:8px;
+  color:var(--muted);
+  letter-spacing:1px;
+  text-align:center;
+  padding-bottom:16px;
+}
+
+/* ===================== LOADING OVERLAY ===================== */
+#mod-loader {
+  display:none;
+  position:absolute;
+  inset:0;
+  background:rgba(4,16,28,0.92);
+  z-index:100;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:12px;
+}
+#mod-loader.show { display:flex; }
+.loader-ring {
+  width:36px; height:36px;
+  border:2px solid var(--border);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.loader-txt {
+  font-family:var(--font-mono);
+  font-size:11px;
+  color:var(--accent);
+  letter-spacing:1px;
+}
+
+/* ===================== SCAN LINE EFFECT ===================== */
+@keyframes scanline {
+  0% { transform:translateY(-100%); }
+  100% { transform:translateY(100vh); }
+}
+.scan-overlay {
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  overflow:hidden;
+}
+.scan-line {
+  position:absolute;
+  width:100%;
+  height:2px;
+  background:linear-gradient(transparent, rgba(0,212,170,0.04), transparent);
+  animation:scanline 8s linear infinite;
+}
+</style>
+</head>
+<body>
+
+<div class="scan-overlay"><div class="scan-line"></div></div>
+
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="logo-mark">
+      <div class="logo-icon">
+        <div class="logo-cross"></div>
+      </div>
+      <div>
+        <div class="logo-text">NAVHUB</div>
+        <div class="logo-sub">MARITIME NAVIGATION SUITE</div>
+      </div>
+    </div>
+    <div class="topbar-spacer"></div>
+    <div id="clock-display">
+      <div class="clock-time" id="clk-time">--:--:--</div>
+      <div class="clock-date" id="clk-date">--- UTC</div>
+    </div>
+  </div>
+
+  <!-- MODULE NAV -->
+  <div id="nav-bar">
+    <div class="nav-item nav-home active" onclick="switchModule('home')" id="nav-home">
+      <div class="nav-icon">⊞</div>
+      <div class="nav-label">HOME</div>
+    </div>
+    <div class="nav-item" onclick="switchModule('chart-planner')" id="nav-chart-planner">
+      <div class="nav-icon">🗺</div>
+      <div class="nav-label">CHART</div>
+    </div>
+    <div class="nav-item" onclick="switchModule('passage')" id="nav-passage">
+      <div class="nav-icon">📍</div>
+      <div class="nav-label">PASSAGE</div>
+    </div>
+    <!-- More nav items added dynamically as modules are added -->
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content">
+    <!-- Loading overlay -->
+    <div id="mod-loader">
+      <div class="loader-ring"></div>
+      <div class="loader-txt" id="loader-msg">LOADING MODULE...</div>
+    </div>
+
+    <!-- HOME -->
+    <div id="home-screen" class="active">
+      <div class="home-greeting">SELAMAT <span id="greeting-time">PAGI</span></div>
+      <div class="home-sub">// MARITIME NAVIGATION SUITE · NAVHUB v1.0</div>
+
+      <div class="status-strip">
+        <div class="status-pill"><div class="status-dot"></div>SYSTEM ONLINE</div>
+        <div class="status-pill" id="pill-utc"><div class="status-dot warn"></div><span id="pill-utc-txt">UTC --:--</span></div>
+        <div class="status-pill"><div class="status-dot off"></div>GPS — NOT CONNECTED</div>
+      </div>
+
+      <div class="modules-label">// ACTIVE MODULES</div>
+      <div class="modules-grid">
+
+        <div class="mod-card" style="--mod-color:var(--accent3)" onclick="switchModule('chart-planner')">
+          <div class="mod-card-badge">ACTIVE</div>
+          <div class="mod-card-icon">🗺</div>
+          <div class="mod-card-name">CHART PLANNER</div>
+          <div class="mod-card-desc">Voyage chart chain & peta referensi navigasi</div>
+        </div>
+
+        <div class="mod-card" style="--mod-color:var(--accent2)" onclick="switchModule('passage')">
+          <div class="mod-card-badge">ACTIVE</div>
+          <div class="mod-card-icon">📍</div>
+          <div class="mod-card-name">PASSAGE MON.</div>
+          <div class="mod-card-desc">Waypoint, ETA, DTG & course monitoring</div>
+        </div>
+
+      </div>
+
+      <div class="home-divider"></div>
+      <div class="modules-label">// COMING SOON</div>
+      <div class="modules-grid">
+
+        <div class="mod-card coming-soon" style="--mod-color:var(--muted)">
+          <div class="mod-card-badge soon">SOON</div>
+          <div class="mod-card-icon">⛽</div>
+          <div class="mod-card-name">FUEL CALC</div>
+          <div class="mod-card-desc">Estimasi konsumsi bahan bakar per leg</div>
+        </div>
+
+        <div class="mod-card coming-soon" style="--mod-color:var(--muted)">
+          <div class="mod-card-badge soon">SOON</div>
+          <div class="mod-card-icon">🧭</div>
+          <div class="mod-card-name">COMPASS</div>
+          <div class="mod-card-desc">Koreksi deviasi & variasi kompas</div>
+        </div>
+
+        <div class="mod-card coming-soon" style="--mod-color:var(--muted)">
+          <div class="mod-card-badge soon">SOON</div>
+          <div class="mod-card-icon">🌊</div>
+          <div class="mod-card-name">COLREGS</div>
+          <div class="mod-card-desc">Quick reference collision regulations</div>
+        </div>
+
+        <div class="mod-card coming-soon" style="--mod-color:var(--muted)">
+          <div class="mod-card-badge soon">SOON</div>
+          <div class="mod-card-icon">💨</div>
+          <div class="mod-card-name">BEAUFORT</div>
+          <div class="mod-card-desc">Skala Beaufort & kondisi cuaca laut</div>
+        </div>
+
+      </div>
+
+      <div class="home-footer">NAVHUB v1.0 · BUILD 2025 · OFFLINE CAPABLE</div>
+    </div>
+
+    <!-- MODULE FRAMES (iframes) -->
+    <iframe id="frame-chart-planner" class="module-frame" src="" title="Chart Planner"></iframe>
+    <iframe id="frame-passage" class="module-frame" src="" title="Passage Monitoring"></iframe>
+
+  </div>
+</div>
+
+<script>
+// ===== MODULE REGISTRY =====
+const MODULES = {
+  'chart-planner': {
+    file: 'modules/chart-planner.html',
+    label: 'CHART PLANNER',
+  },
+  'passage': {
+    file: 'modules/passage-monitoring.html',
+    label: 'PASSAGE MON.',
+  },
+};
+
+const loadedModules = new Set();
+let currentModule = 'home';
+
+function switchModule(id) {
+  // Update nav
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + id);
+  if (navEl) navEl.classList.add('active');
+
+  // Hide all
+  document.getElementById('home-screen').classList.remove('active');
+  document.querySelectorAll('.module-frame').forEach(f => f.classList.remove('active'));
+
+  if (id === 'home') {
+    document.getElementById('home-screen').classList.add('active');
+    currentModule = 'home';
+    return;
+  }
+
+  const mod = MODULES[id];
+  if (!mod) return;
+
+  const frame = document.getElementById('frame-' + id);
+  if (!frame) return;
+
+  if (!loadedModules.has(id)) {
+    // Show loader
+    const loader = document.getElementById('mod-loader');
+    const msg = document.getElementById('loader-msg');
+    msg.textContent = 'LOADING ' + mod.label + '...';
+    loader.classList.add('show');
+
+    frame.src = mod.file;
+    frame.onload = () => {
+      loadedModules.add(id);
+      loader.classList.remove('show');
+      frame.classList.add('active');
+    };
+    // Fallback timeout
+    setTimeout(() => loader.classList.remove('show'), 5000);
+  } else {
+    frame.classList.add('active');
+  }
+
+  currentModule = id;
+}
+
+// ===== CLOCK =====
+function updateClock() {
+  const now = new Date();
+  const utc = new Date(now.toISOString());
+  const hh = String(utc.getUTCHours()).padStart(2,'0');
+  const mm = String(utc.getUTCMinutes()).padStart(2,'0');
+  const ss = String(utc.getUTCSeconds()).padStart(2,'0');
+  const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const day = days[utc.getUTCDay()];
+  const date = String(utc.getUTCDate()).padStart(2,'0');
+  const mon = months[utc.getUTCMonth()];
+  const yr = utc.getUTCFullYear();
+
+  document.getElementById('clk-time').textContent = `${hh}:${mm}:${ss}`;
+  document.getElementById('clk-date').textContent = `${day} ${date} ${mon} ${yr} UTC`;
+  document.getElementById('pill-utc-txt').textContent = `UTC ${hh}:${mm}`;
+
+  // Greeting
+  const localH = now.getHours();
+  let gr = 'PAGI';
+  if (localH >= 11 && localH < 15) gr = 'SIANG';
+  else if (localH >= 15 && localH < 19) gr = 'SORE';
+  else if (localH >= 19 || localH < 5) gr = 'MALAM';
+  document.getElementById('greeting-time').textContent = gr;
+}
+updateClock();
+setInterval(updateClock, 1000);
+</script>
+</body>
+</html>
