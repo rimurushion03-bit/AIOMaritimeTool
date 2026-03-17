@@ -450,12 +450,12 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
       </div>
     </div>
 
-    <!-- Upload Zone -->
-    <div class="cd-zone" id="cd-zone"
+    <!-- Upload Zone (hidden by default kalau sudah ada data) -->
+    <div class="cd-zone" id="cd-zone" style="display:block;"
          onclick="document.getElementById('cd-file-in').click()"
          ondragover="cdDragOver(event)" ondragleave="cdDragLeave(event)" ondrop="cdDrop(event)">
       <div class="cd-zone-icon">📂</div>
-      <div class="cd-zone-txt">TAP ATAU DROP FILE DI SINI</div>
+      <div class="cd-zone-txt" id="cd-zone-txt">TAP ATAU DROP FILE DI SINI</div>
       <div class="cd-zone-hint">Format: .json · Chart Index PLI / DISHIDROS</div>
     </div>
     <input type="file" id="cd-file-in" accept=".json" style="display:none" onchange="cdLoadFile(this)">
@@ -476,16 +476,26 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
       </div>
     </div>
 
-    <!-- Layer breakdown -->
-    <div class="cd-layers" id="cd-layers"></div>
+    <!-- Layer breakdown (collapsible, hidden by default) -->
+    <div id="cd-layers-wrap" style="overflow:hidden;max-height:0;transition:max-height .3s ease;">
+      <div class="cd-layers" id="cd-layers" style="padding-top:6px;"></div>
+    </div>
+    <button id="cd-layers-toggle" onclick="toggleLayerBreakdown()" style="display:none;width:100%;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted2);font-family:var(--fmono);font-size:8px;letter-spacing:1px;padding:5px;cursor:pointer;margin-bottom:8px;transition:all .15s;">
+      ▼ &nbsp;LIHAT PER LAYER
+    </button>
 
     <!-- Actions Chart -->
     <button class="cd-btn primary" id="cd-open-btn" onclick="go('chart');closeSB();toggleCDPanel();" style="display:none">
       🗺 &nbsp;BUKA CHART PLANNER
     </button>
-    <button class="cd-btn danger" id="cd-clear-btn" onclick="cdClearData()" style="display:none">
-      🗑 &nbsp;HAPUS DATA
-    </button>
+    <div style="display:flex;gap:6px;">
+      <button class="cd-btn" id="cd-upload-btn" onclick="cdToggleUpload()" style="display:none;flex:1;background:transparent;border-color:var(--border2);color:var(--muted2);">
+        ⬆ &nbsp;GANTI DATA
+      </button>
+      <button class="cd-btn danger" id="cd-clear-btn" onclick="cdClearData()" style="display:none;flex:1;">
+        🗑 &nbsp;HAPUS DATA
+      </button>
+    </div>
 
     <!-- Divider GPX -->
     <div style="height:1px;background:var(--border);margin:14px 0;"></div>
@@ -496,12 +506,15 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
       <div class="cd-st-dot" id="gpx-st-dot"></div>
       <div class="cd-st-txt">
         <strong id="gpx-st-title">TIDAK ADA ROUTE</strong>
-        <span id="gpx-st-sub">Upload file .gpx untuk Chart Planner</span>
+        <span id="gpx-st-sub">Export dari Passage Monitoring atau upload .gpx</span>
       </div>
     </div>
 
-    <!-- GPX Upload Zone -->
-    <div class="cd-zone" id="gpx-zone" style="margin-bottom:10px;"
+    <!-- GPX List -->
+    <div id="gpx-list" style="margin-bottom:8px;display:none;"></div>
+
+    <!-- GPX Upload Zone (hidden by default, tampil kalau tidak ada data) -->
+    <div class="cd-zone" id="gpx-zone" style="margin-bottom:10px;display:none;"
          onclick="document.getElementById('gpx-file-in').click()"
          ondragover="gpxDragOver(event)" ondragleave="gpxDragLeave(event)" ondrop="gpxDrop(event)">
       <div class="cd-zone-icon">🛤</div>
@@ -510,28 +523,14 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
     </div>
     <input type="file" id="gpx-file-in" accept=".gpx" style="display:none" onchange="gpxLoadFile(this)">
 
-    <!-- GPX Info -->
-    <div class="cd-info" id="gpx-info">
-      <div class="cd-info-row">
-        <span>Waypoints</span>
-        <span class="cd-info-val accent" id="gpx-wpt-cnt">0</span>
-      </div>
-      <div class="cd-info-row">
-        <span>Track Points</span>
-        <span class="cd-info-val" id="gpx-trk-cnt">0</span>
-      </div>
-      <div class="cd-info-row">
-        <span>Nama File</span>
-        <span class="cd-info-val" id="gpx-fname" style="font-size:8px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
-      </div>
+    <div style="display:flex;gap:6px;margin-top:4px;">
+      <button class="cd-btn" id="gpx-upload-btn" onclick="gpxToggleUpload()" style="flex:1;background:transparent;border-color:var(--border2);color:var(--muted2);">
+        ⬆ &nbsp;UPLOAD GPX
+      </button>
+      <button class="cd-btn danger" id="gpx-clear-btn" onclick="gpxClearAll()" style="display:none;flex:1;">
+        🗑 &nbsp;HAPUS SEMUA
+      </button>
     </div>
-
-    <button class="cd-btn primary" id="gpx-dl-btn" onclick="gpxDownload()" style="display:none">
-      ⬇ &nbsp;DOWNLOAD GPX
-    </button>
-    <button class="cd-btn danger" id="gpx-clear-btn" onclick="gpxClearData()" style="display:none">
-      🗑 &nbsp;HAPUS ROUTE GPX
-    </button>
 
   </div>
 </div>
@@ -832,10 +831,11 @@ async function cdRefreshUI() {
     document.getElementById('cd-st-title').textContent = 'TIDAK ADA DATA';
     document.getElementById('cd-st-sub').textContent = 'Upload file JSON chart index';
     document.getElementById('cd-info').classList.remove('show');
-    document.getElementById('cd-layers').classList.remove('show');
     document.getElementById('cd-open-btn').style.display = 'none';
     document.getElementById('cd-clear-btn').style.display = 'none';
-    document.getElementById('cd-zone').querySelector('.cd-zone-txt').textContent = 'TAP ATAU DROP FILE DI SINI';
+    document.getElementById('cd-upload-btn').style.display = 'none';
+    document.getElementById('cd-layers-toggle').style.display = 'none';
+    document.getElementById('cd-zone').style.display = 'block'; // tampil kalau kosong
     btn.classList.remove('has-data');
     return;
   }
@@ -870,11 +870,34 @@ async function cdRefreshUI() {
       </div>
     </div>`;
   }).join('');
-  layerEl.classList.add('show');
-  document.getElementById('cd-zone').querySelector('.cd-zone-txt').textContent = 'UPLOAD ULANG / GANTI DATA';
+  // Layer breakdown tersembunyi by default
+  document.getElementById('cd-layers-toggle').style.display = 'block';
+  document.getElementById('cd-zone').style.display = 'none'; // sembunyi kalau ada data
+  document.getElementById('cd-upload-btn').style.display = 'block';
   document.getElementById('cd-open-btn').style.display = 'block';
   document.getElementById('cd-clear-btn').style.display = 'block';
   btn.classList.add('has-data');
+}
+
+let layerBreakdownOpen = false;
+function toggleLayerBreakdown() {
+  layerBreakdownOpen = !layerBreakdownOpen;
+  const wrap = document.getElementById('cd-layers-wrap');
+  const btn = document.getElementById('cd-layers-toggle');
+  if (layerBreakdownOpen) {
+    wrap.style.maxHeight = wrap.scrollHeight + 'px';
+    btn.textContent = '▲  SEMBUNYIKAN LAYER';
+  } else {
+    wrap.style.maxHeight = '0';
+    btn.textContent = '▼  LIHAT PER LAYER';
+  }
+}
+
+function cdToggleUpload() {
+  const zone = document.getElementById('cd-zone');
+  const isVisible = zone.style.display !== 'none';
+  zone.style.display = isVisible ? 'none' : 'block';
+  document.getElementById('cd-upload-btn').textContent = isVisible ? '⬆ \u00a0GANTI DATA' : '✕ \u00a0TUTUP';
 }
 
 async function cdClearData() {
@@ -899,7 +922,7 @@ function gpxLoadFile(input) {
   const file = input.files[0]; if(file) gpxProcessFile(file); input.value='';
 }
 
-// ── Process + Save GPX ──
+// ── Process + Save GPX (upload manual → slot 'main') ──
 function gpxProcessFile(file) {
   document.getElementById('gpx-zone-txt').textContent = 'MEMPROSES...';
   const reader = new FileReader();
@@ -908,6 +931,7 @@ function gpxProcessFile(file) {
       const parsed = NavHubDB.parseGPXString(e.target.result);
       await NavHubDB.saveGPX('main', {
         fileName    : file.name,
+        routeName   : file.name.replace(/\.gpx$/i,''),
         waypoints   : parsed.waypoints,
         trackPoints : parsed.trackPoints,
         rawGPX      : e.target.result,
@@ -923,47 +947,88 @@ function gpxProcessFile(file) {
   reader.readAsText(file);
 }
 
-// ── Download GPX dari DB ──
-async function gpxDownload() {
-  const rec = await NavHubDB.getGPX('main');
+// ── Refresh GPX UI (multi-slot) ──
+async function gpxRefreshUI() {
+  if (typeof NavHubDB === 'undefined') return;
+  const all = await NavHubDB.getAllGPX();
+  const valid = (all||[]).filter(r => r.waypoints?.length || r.trackPoints?.length);
+  const dot = document.getElementById('gpx-st-dot');
+  const title = document.getElementById('gpx-st-title');
+  const sub = document.getElementById('gpx-st-sub');
+  const listEl = document.getElementById('gpx-list');
+  const clearBtn = document.getElementById('gpx-clear-btn');
+  const zone = document.getElementById('gpx-zone');
+  const uploadBtn = document.getElementById('gpx-upload-btn');
+
+  if (!valid.length) {
+    dot.className = 'cd-st-dot';
+    title.textContent = 'TIDAK ADA ROUTE';
+    sub.textContent = 'Export dari Passage Monitoring atau upload .gpx';
+    listEl.style.display = 'none';
+    listEl.innerHTML = '';
+    clearBtn.style.display = 'none';
+    zone.style.display = 'block'; // langsung tampil kalau kosong
+    uploadBtn.style.display = 'none';
+    return;
+  }
+
+  dot.className = 'cd-st-dot loaded';
+  title.textContent = `${valid.length} ROUTE GPX`;
+  sub.textContent = 'Tersimpan di NavHub storage';
+  clearBtn.style.display = 'block';
+  listEl.style.display = 'block';
+  zone.style.display = 'none'; // sembunyi kalau sudah ada data
+  uploadBtn.style.display = 'block';
+
+  listEl.innerHTML = valid.map(rec => {
+    const name = rec.routeName || rec.fileName || rec.id;
+    const wc = rec.waypointCount || rec.waypoints?.length || 0;
+    const d = rec.savedAt ? new Date(rec.savedAt).toLocaleDateString('id-ID',{day:'2-digit',month:'short'}) : '';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">
+      <div style="flex:1;min-width:0;">
+        <div style="font-family:var(--fmono);font-size:10px;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+        <div style="font-family:var(--fmono);font-size:8px;color:var(--muted2);margin-top:1px;">${wc} wpt${d?' · '+d:''}</div>
+      </div>
+      <button onclick="gpxDownloadSlot('${rec.id}')" style="height:22px;padding:0 8px;background:transparent;border:1px solid var(--border2);border-radius:4px;color:var(--muted2);font-family:var(--fmono);font-size:8px;cursor:pointer;flex-shrink:0;" title="Download">⬇</button>
+      <button onclick="gpxDeleteSlot('${rec.id}')" style="height:22px;padding:0 8px;background:transparent;border:1px solid var(--border2);border-radius:4px;color:var(--muted2);font-family:var(--fmono);font-size:8px;cursor:pointer;flex-shrink:0;" title="Hapus">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function gpxToggleUpload() {
+  const zone = document.getElementById('gpx-zone');
+  const isVisible = zone.style.display !== 'none';
+  zone.style.display = isVisible ? 'none' : 'block';
+  document.getElementById('gpx-upload-btn').textContent = isVisible ? '⬆ \u00a0UPLOAD GPX' : '✕ \u00a0TUTUP';
+}
+
+async function gpxDownloadSlot(id) {
+  const rec = await NavHubDB.getGPX(id);
   if (!rec) { toast('TIDAK ADA GPX'); return; }
-  const content = rec.rawGPX || NavHubDB.generateGPXString(rec.waypoints, rec.fileName);
+  const content = rec.rawGPX || NavHubDB.generateGPXString(rec.waypoints || [], rec.fileName);
   nhDownloadFile(rec.fileName || 'route.gpx', content, 'application/gpx+xml');
 }
 
-// ── Refresh GPX UI ──
-async function gpxRefreshUI() {
-  if (typeof NavHubDB === 'undefined') return;
-  const rec = await NavHubDB.getGPX('main');
-  if (!rec) {
-    document.getElementById('gpx-st-dot').className = 'cd-st-dot';
-    document.getElementById('gpx-st-title').textContent = 'TIDAK ADA ROUTE';
-    document.getElementById('gpx-st-sub').textContent = 'Upload .gpx atau generate dari Chart Planner';
-    document.getElementById('gpx-info').classList.remove('show');
-    document.getElementById('gpx-dl-btn').style.display = 'none';
-    document.getElementById('gpx-clear-btn').style.display = 'none';
-    document.getElementById('gpx-zone-txt').textContent = 'TAP ATAU DROP FILE GPX';
-    return;
-  }
-  document.getElementById('gpx-st-dot').className = 'cd-st-dot loaded';
-  document.getElementById('gpx-st-title').textContent = 'ROUTE SIAP';
-  document.getElementById('gpx-st-sub').textContent = rec.fileName;
-  document.getElementById('gpx-wpt-cnt').textContent = rec.waypointCount;
-  document.getElementById('gpx-trk-cnt').textContent = rec.trackPointCount;
-  document.getElementById('gpx-fname').textContent = rec.fileName;
-  document.getElementById('gpx-info').classList.add('show');
-  document.getElementById('gpx-dl-btn').style.display = 'block';
-  document.getElementById('gpx-clear-btn').style.display = 'block';
-  document.getElementById('gpx-zone-txt').textContent = 'UPLOAD ULANG / GANTI GPX';
-}
-
-async function gpxClearData() {
-  if (!confirm('Hapus GPX route dari IndexedDB?')) return;
-  await NavHubDB.deleteGPX('main');
-  loaded['chart'] = false;
+async function gpxDeleteSlot(id) {
+  if (!confirm('Hapus GPX ini?')) return;
+  await NavHubDB.deleteGPX(id);
   await gpxRefreshUI();
   toast('GPX DIHAPUS');
+  loaded['chart'] = false;
 }
+
+async function gpxClearAll() {
+  if (!confirm('Hapus SEMUA GPX dari NavHub?')) return;
+  const all = await NavHubDB.getAllGPX();
+  for (const r of (all||[])) await NavHubDB.deleteGPX(r.id);
+  await gpxRefreshUI();
+  toast('SEMUA GPX DIHAPUS');
+  loaded['chart'] = false;
+}
+
+// Legacy aliases
+async function gpxDownload() { const all = await NavHubDB.getAllGPX(); if(all?.[0]) gpxDownloadSlot(all[0].id); }
+async function gpxClearData() { await gpxClearAll(); }
 
 /* ── INIT DB UI ── */
 document.addEventListener('DOMContentLoaded', () => {
