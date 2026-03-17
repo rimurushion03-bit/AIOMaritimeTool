@@ -387,6 +387,8 @@ function showHome(){
   document.getElementById('mod-view').classList.remove('active');
   document.getElementById('mod-view').style.display='none';
   document.getElementById('main').classList.remove('mod-active');
+  document.getElementById('topbar').classList.remove('hidden');
+  showTB();
   setTB('NAVHUB','MARITIME NAVIGATION SUITE');
 }
 
@@ -396,12 +398,18 @@ function loadMod(id){
   const mv = document.getElementById('mod-view');
   mv.style.display='block'; mv.classList.add('active');
   document.getElementById('main').classList.add('mod-active');
+  // Hide topbar completely — module has its own header with back button
+  document.getElementById('topbar').classList.add('hidden');
   setTB(m.title, m.sub);
   const fr = document.getElementById('mod-frame');
   if(loaded[id] && fr.dataset.cur===id) return;
   showLd(m.title);
   fr.src = m.file; fr.dataset.cur = id;
-  fr.onload = ()=>{ loaded[id]=true; hideLd(); try{fr.contentWindow._navhub={go};}catch(e){} };
+  fr.onload = ()=>{
+    loaded[id]=true; hideLd();
+    // Expose switchModule to iframe so ⊞ button works
+    try{ fr.contentWindow.switchModule = go; }catch(e){}
+  };
   setTimeout(hideLd,7000);
 }
 
