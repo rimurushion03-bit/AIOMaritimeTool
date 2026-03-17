@@ -2,621 +2,469 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#04101c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NavHub — Maritime Navigation Suite</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600&family=JetBrains+Mono:wght@300;400;600&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="manifest" href="./manifest.json">
 <style>
-/* ===================== TOKENS ===================== */
+/* ═══════════ TOKENS ═══════════ */
 :root {
-  --bg:        #04101c;
-  --bg2:       #061624;
-  --panel:     #091e30;
-  --panel2:    #0c2440;
-  --border:    #12304a;
-  --border2:   #1a4060;
-  --accent:    #00d4aa;
-  --accent2:   #ff8c42;
-  --accent3:   #4a9eff;
-  --warn:      #ffd700;
-  --text:      #c8ddf0;
-  --muted:     #3d6080;
-  --muted2:    #5a7a96;
-  --danger:    #ef4444;
-  --success:   #10b981;
-  --font-hud:  'Teko', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --font-body: 'Noto Sans', sans-serif;
+  --teal:#00d4aa; --teal-dim:rgba(0,212,170,0.12); --teal-glow:rgba(0,212,170,0.22);
+  --red:#ff2222;  --red-dim:rgba(255,34,34,0.12);
+  --gold:#ffd700; --blue:#4a9eff; --danger:#ef4444; --success:#10b981; --warn:#f59e0b;
+  --bg:#04101c; --bg2:#061624;
+  --panel:rgba(9,30,48,0.96); --panel-s:#091e30;
+  --border:rgba(0,212,170,0.13); --border2:rgba(0,212,170,0.26);
+  --text:#c8ddf0; --muted:#3d6080; --muted2:#5a7a96;
+  --accent:var(--teal); --accent-dim:var(--teal-dim); --accent-glow:var(--teal-glow);
+  --fhud:'Teko',sans-serif; --fmono:'JetBrains Mono',monospace; --fbody:'Noto Sans',sans-serif;
+}
+body.night {
+  --accent:var(--red); --accent-dim:var(--red-dim); --accent-glow:rgba(255,34,34,0.22);
+  --bg:#000; --bg2:#07000a; --panel:rgba(18,3,3,0.97); --panel-s:#120303;
+  --border:rgba(255,34,34,0.16); --border2:rgba(255,34,34,0.3);
+  --text:#ffaaaa; --muted:#4a1a1a; --muted2:#7a3232;
 }
 
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:var(--font-body); }
+/* ═══════════ RESET ═══════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--fbody);}
 
-/* ===================== GRID NOISE OVERLAY ===================== */
-body::before {
-  content:'';
-  position:fixed; inset:0; z-index:0; pointer-events:none;
-  background-image:
-    linear-gradient(rgba(0,212,170,0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,212,170,0.015) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
+/* ═══════════ BG GRID ═══════════ */
+#bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:44px 44px;opacity:.65;transition:opacity .5s;}
+#bg-grid::after{content:'';position:absolute;width:360px;height:360px;top:50%;left:50%;
+  transform:translate(-50%,-50%);border-radius:50%;
+  border:1px solid rgba(0,212,170,0.05);
+  box-shadow:0 0 0 90px rgba(0,212,170,0.018),0 0 0 180px rgba(0,212,170,0.012);pointer-events:none;}
+body.night #bg-grid::after{border-color:rgba(255,34,34,0.05);
+  box-shadow:0 0 0 90px rgba(255,34,34,0.018),0 0 0 180px rgba(255,34,34,0.012);}
+@keyframes scan{0%{transform:translateY(-4px);}100%{transform:translateY(100vh);}}
+#scan-line{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+#scan-line::after{content:'';position:absolute;width:100%;height:3px;
+  background:linear-gradient(transparent,rgba(0,212,170,0.035),transparent);
+  animation:scan 12s linear infinite;}
+body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,34,0.035),transparent);}
 
-/* ===================== APP SHELL ===================== */
-#app { position:relative; z-index:1; display:flex; flex-direction:column; height:100dvh; }
+/* ═══════════ SPLASH ═══════════ */
+#splash{position:fixed;inset:0;z-index:9999;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  transition:opacity .6s ease,visibility .6s;}
+#splash.hide{opacity:0;visibility:hidden;}
+.sp-logo{font-family:var(--fhud);font-size:clamp(3.5rem,14vw,5.5rem);font-weight:600;
+  letter-spacing:10px;color:var(--teal);line-height:1;
+  filter:drop-shadow(0 0 28px rgba(0,212,170,.5));
+  animation:spPulse 1.1s ease-in-out infinite alternate;}
+@keyframes spPulse{from{filter:drop-shadow(0 0 10px rgba(0,212,170,.3));}
+  to{filter:drop-shadow(0 0 36px rgba(0,212,170,.65));}}
+.sp-sub{font-family:var(--fmono);font-size:9px;letter-spacing:4px;color:var(--muted2);text-transform:uppercase;}
+.sp-bar{width:150px;height:2px;background:rgba(0,212,170,0.1);border-radius:2px;overflow:hidden;}
+.sp-fill{height:100%;background:var(--teal);box-shadow:0 0 8px var(--teal);width:0%;transition:width .08s linear;}
 
-/* ===================== TOP BAR ===================== */
-#topbar {
-  flex-shrink:0;
-  background:var(--panel);
+/* ═══════════ OVERLAY ═══════════ */
+#overlay{position:fixed;inset:0;z-index:5500;background:rgba(0,0,0,.65);
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:none;cursor:pointer;}
+#overlay.show{display:block;}
+
+/* ═══════════ SIDEBAR ═══════════ */
+#sidebar{position:fixed;top:0;left:-295px;width:295px;height:100%;
+  background:var(--panel);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+  border-right:1px solid var(--border2);z-index:6000;
+  display:flex;flex-direction:column;
+  transition:left .38s cubic-bezier(.4,0,.2,1);}
+#sidebar.open{left:0;}
+
+.sb-head{padding:46px 22px 16px;
+  background:linear-gradient(to bottom,var(--accent-dim),transparent);
+  border-bottom:1px solid var(--border);flex-shrink:0;}
+.sb-logo{font-family:var(--fhud);font-size:28px;font-weight:600;letter-spacing:5px;
+  color:var(--accent);line-height:1;cursor:pointer;transition:opacity .2s;}
+.sb-logo:active{opacity:.7;}
+.sb-logo-sub{font-family:var(--fmono);font-size:8px;letter-spacing:2px;color:var(--muted2);margin-top:3px;}
+
+.sb-nav{flex:1;overflow-y:auto;padding:12px 0;scrollbar-width:none;}
+.sb-nav::-webkit-scrollbar{display:none;}
+
+.sb-sec{font-family:var(--fmono);font-size:8px;letter-spacing:2px;color:var(--muted);
+  padding:10px 22px 5px;text-transform:uppercase;}
+
+.sb-item{display:flex;align-items:center;gap:12px;padding:11px 22px;cursor:pointer;
+  border-left:2px solid transparent;transition:all .18s;}
+.sb-item:hover{background:var(--accent-dim);}
+.sb-item.active{border-left-color:var(--accent);background:var(--accent-dim);}
+.sb-item.active .sbi-label{color:var(--accent);}
+.sb-item.active .sbi-icon{color:var(--accent);}
+.sb-item.dim{opacity:.38;pointer-events:none;}
+
+.sbi-icon{font-size:17px;flex-shrink:0;color:var(--muted2);width:22px;text-align:center;transition:color .18s;}
+.sbi-wrap{flex:1;min-width:0;}
+.sbi-label{font-family:var(--fmono);font-size:11px;color:var(--text);letter-spacing:1px;transition:color .18s;}
+.sbi-desc{font-size:9px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sbi-badge{font-family:var(--fmono);font-size:7px;letter-spacing:1px;padding:2px 6px;border-radius:10px;
+  background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);flex-shrink:0;}
+.sbi-badge.soon{background:rgba(61,96,128,.12);border-color:var(--muted);color:var(--muted);}
+
+.sb-div{height:1px;background:var(--border);margin:5px 0;}
+
+.sb-foot{flex-shrink:0;border-top:1px solid var(--border);padding:14px 22px 20px;}
+
+.sb-clk{font-family:var(--fmono);margin-bottom:12px;}
+.sb-clk-t{font-size:24px;font-weight:600;color:var(--accent);letter-spacing:2px;line-height:1;}
+.sb-clk-d{font-size:8px;color:var(--muted2);letter-spacing:1px;margin-top:3px;}
+
+.sb-stor{font-family:var(--fmono);font-size:8px;color:var(--muted2);margin-bottom:10px;}
+.sb-stor-bar{width:100%;height:3px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-top:4px;}
+.sb-stor-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .5s,background .3s;}
+.sb-stor-fill.warn{background:var(--warn);} .sb-stor-fill.danger{background:var(--danger);}
+
+.sb-acts{display:flex;gap:8px;margin-bottom:12px;}
+.sb-act{flex:1;padding:8px 6px;border-radius:7px;border:1px solid var(--border2);
+  background:transparent;color:var(--muted2);font-family:var(--fmono);font-size:9px;
+  letter-spacing:1px;cursor:pointer;transition:all .18s;text-align:center;}
+.sb-act:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+.sb-act.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+
+.sb-copy{font-family:var(--fmono);font-size:7px;letter-spacing:2px;color:var(--muted);text-align:center;}
+
+/* ═══════════ TOPBAR ═══════════ */
+#topbar{position:fixed;top:0;left:0;right:0;z-index:5000;height:52px;
+  background:var(--panel);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
   border-bottom:1px solid var(--border);
-  padding:0 14px;
-  height:52px;
-  display:flex;
-  align-items:center;
-  gap:12px;
-  position:relative;
-  overflow:hidden;
-}
-#topbar::after {
-  content:'';
-  position:absolute; bottom:0; left:0; right:0;
-  height:1px;
-  background:linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity:0.4;
-}
+  display:flex;align-items:center;gap:10px;padding:0 14px;
+  transition:border-color .4s;}
+#topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.35;}
 
-.logo-mark {
-  display:flex;
-  align-items:center;
-  gap:8px;
-  flex-shrink:0;
-}
-.logo-icon {
-  width:32px; height:32px;
-  border:1.5px solid var(--accent);
-  border-radius:50%;
-  display:flex; align-items:center; justify-content:center;
-  position:relative;
-  flex-shrink:0;
-}
-.logo-icon::before {
-  content:'';
-  position:absolute;
-  width:1px; height:60%; background:var(--accent);
-  top:20%; left:50%; transform:translateX(-50%);
-}
-.logo-icon::after {
-  content:'';
-  position:absolute;
-  width:60%; height:1px; background:var(--accent);
-  top:50%; left:20%;
-}
-.logo-cross {
-  position:absolute;
-  width:8px; height:8px;
-  border-radius:50%;
-  background:var(--accent);
-  top:50%; left:50%;
-  transform:translate(-50%,-50%);
-}
-.logo-text {
-  font-family:var(--font-hud);
-  font-size:24px;
-  font-weight:600;
-  letter-spacing:4px;
-  color:var(--accent);
-  line-height:1;
-}
-.logo-sub {
-  font-family:var(--font-mono);
-  font-size:8px;
-  color:var(--muted);
-  letter-spacing:2px;
-  line-height:1;
-  margin-top:2px;
-}
+.tb-btn{width:36px;height:36px;border-radius:9px;background:transparent;
+  border:1px solid var(--border2);color:var(--muted2);font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .18s;}
+.tb-btn:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+.tb-btn:active{transform:scale(.93);}
 
-.topbar-spacer { flex:1; }
+.tb-title-wrap{flex:1;}
+.tb-title{font-family:var(--fhud);font-size:21px;letter-spacing:4px;color:var(--accent);line-height:1;}
+.tb-sub{font-family:var(--fmono);font-size:8px;letter-spacing:1px;color:var(--muted2);}
 
-#clock-display {
-  font-family:var(--font-mono);
-  font-size:12px;
-  color:var(--accent3);
-  letter-spacing:1px;
-  text-align:right;
-}
-#clock-display .clock-time { font-size:16px; font-weight:600; }
-#clock-display .clock-date { font-size:9px; color:var(--muted); margin-top:1px; }
+/* ═══════════ MAIN ═══════════ */
+#main{position:relative;z-index:1;width:100%;height:100dvh;padding-top:52px;}
 
-/* ===================== MODULE NAVBAR ===================== */
-#nav-bar {
-  flex-shrink:0;
-  background:var(--bg2);
-  border-bottom:1px solid var(--border);
-  display:flex;
-  gap:0;
-  overflow-x:auto;
-  scrollbar-width:none;
-}
-#nav-bar::-webkit-scrollbar { display:none; }
+/* ═══════════ HOME ═══════════ */
+#home{display:none;width:100%;height:100%;overflow-y:auto;padding:20px 16px 36px;}
+#home.active{display:block;}
 
-.nav-item {
-  flex-shrink:0;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  padding:10px 16px 8px;
-  cursor:pointer;
-  border-bottom:2px solid transparent;
-  transition:all 0.18s;
-  gap:3px;
-  min-width:70px;
-  position:relative;
-}
-.nav-item:hover { background:rgba(0,212,170,0.04); }
-.nav-item.active {
-  border-bottom-color:var(--accent);
-  background:rgba(0,212,170,0.06);
-}
-.nav-item.active .nav-icon { color:var(--accent); }
-.nav-item.active .nav-label { color:var(--accent); }
+.h-greet{font-family:var(--fhud);font-size:32px;letter-spacing:3px;color:var(--text);line-height:1;}
+.h-greet em{color:var(--accent);font-style:normal;}
+.h-tag{font-family:var(--fmono);font-size:9px;letter-spacing:2px;color:var(--muted2);margin-top:4px;margin-bottom:20px;}
 
-.nav-icon {
-  font-size:18px;
-  line-height:1;
-  color:var(--muted2);
-  transition:color 0.18s;
-}
-.nav-label {
-  font-family:var(--font-mono);
-  font-size:8px;
-  letter-spacing:1px;
-  color:var(--muted);
-  transition:color 0.18s;
-  white-space:nowrap;
-}
+.h-strip{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;}
+.h-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;
+  background:var(--panel);border:1px solid var(--border);border-radius:20px;
+  font-family:var(--fmono);font-size:8px;color:var(--muted2);backdrop-filter:blur(8px);}
+.h-dot{width:5px;height:5px;border-radius:50%;background:var(--success);box-shadow:0 0 5px var(--success);flex-shrink:0;}
+.h-dot.warn{background:var(--warn);box-shadow:0 0 5px var(--warn);}
+.h-dot.off{background:var(--muted);box-shadow:none;}
 
-/* home special */
-.nav-item.nav-home .nav-icon { color:var(--accent2); }
-.nav-item.nav-home.active .nav-icon { color:var(--accent2); }
-.nav-item.nav-home.active { border-bottom-color:var(--accent2); background:rgba(255,140,66,0.06); }
-.nav-item.nav-home .nav-label { color:var(--muted); }
-.nav-item.nav-home.active .nav-label { color:var(--accent2); }
+.h-sec{font-family:var(--fmono);font-size:8px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;}
 
-/* ===================== CONTENT AREA ===================== */
-#content {
-  flex:1;
-  min-height:0;
-  position:relative;
-}
+.h-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;}
+@media(min-width:480px){.h-grid{grid-template-columns:repeat(3,1fr);}}
 
-.module-frame {
-  display:none;
-  width:100%;
-  height:100%;
-  border:none;
-  background:var(--bg);
-}
-.module-frame.active { display:block; }
+.h-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:16px 14px 14px;cursor:pointer;transition:all .2s;
+  display:flex;flex-direction:column;gap:7px;position:relative;overflow:hidden;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+.h-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--c-accent,var(--accent));opacity:0;transition:opacity .2s;}
+.h-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.h-card:hover::before{opacity:1;}
+.h-card:active{transform:scale(.97);}
+.h-card.off{opacity:.35;cursor:default;pointer-events:none;}
 
-/* ===================== HOME SCREEN ===================== */
-#home-screen {
-  display:none;
-  width:100%;
-  height:100%;
-  overflow-y:auto;
-  padding:20px 16px;
-}
-#home-screen.active { display:block; }
+.hc-icon{font-size:26px;line-height:1;}
+.hc-name{font-family:var(--fhud);font-size:18px;letter-spacing:2px;color:var(--text);line-height:1;}
+.hc-desc{font-family:var(--fmono);font-size:8px;color:var(--muted2);line-height:1.5;}
+.hc-badge{position:absolute;top:10px;right:10px;font-family:var(--fmono);font-size:7px;
+  letter-spacing:1px;padding:2px 6px;border-radius:10px;
+  background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);}
+.hc-badge.soon{background:rgba(61,96,128,.12);border-color:var(--muted);color:var(--muted);}
 
-.home-greeting {
-  font-family:var(--font-hud);
-  font-size:28px;
-  letter-spacing:3px;
-  color:var(--text);
-  margin-bottom:2px;
-}
-.home-greeting span { color:var(--accent2); }
+.h-div{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:16px 0;}
+.h-foot{font-family:var(--fmono);font-size:7px;letter-spacing:2px;color:var(--muted);text-align:center;padding-top:8px;}
 
-.home-sub {
-  font-family:var(--font-mono);
-  font-size:10px;
-  color:var(--muted);
-  letter-spacing:1px;
-  margin-bottom:24px;
-}
+/* ═══════════ MODULE VIEW ═══════════ */
+#mod-view{display:none;width:100%;height:100%;position:relative;}
+#mod-view.active{display:block;}
+#mod-frame{width:100%;height:100%;border:none;background:var(--bg);}
 
-/* status strip */
-.status-strip {
-  display:flex;
-  gap:8px;
-  margin-bottom:24px;
-  flex-wrap:wrap;
-}
-.status-pill {
-  display:flex;
-  align-items:center;
-  gap:5px;
-  padding:5px 10px;
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:20px;
-  font-family:var(--font-mono);
-  font-size:9px;
-  color:var(--muted2);
-}
-.status-dot {
-  width:6px; height:6px;
-  border-radius:50%;
-  background:var(--success);
-  flex-shrink:0;
-  box-shadow:0 0 6px var(--success);
-}
-.status-dot.warn { background:var(--warn); box-shadow:0 0 6px var(--warn); }
-.status-dot.off { background:var(--muted); box-shadow:none; }
+#mod-loader{display:none;position:absolute;inset:0;z-index:10;
+  background:rgba(4,16,28,.93);align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+#mod-loader.show{display:flex;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ld-ring{width:36px;height:36px;border:2px solid var(--border2);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .7s linear infinite;}
+.ld-txt{font-family:var(--fmono);font-size:10px;color:var(--accent);letter-spacing:2px;}
 
-/* module cards grid */
-.modules-label {
-  font-family:var(--font-mono);
-  font-size:9px;
-  letter-spacing:2px;
-  color:var(--muted);
-  margin-bottom:12px;
-  text-transform:uppercase;
-}
-
-.modules-grid {
-  display:grid;
-  grid-template-columns:repeat(2, 1fr);
-  gap:10px;
-  margin-bottom:24px;
-}
-@media(min-width:500px) { .modules-grid { grid-template-columns:repeat(3,1fr); } }
-
-.mod-card {
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:10px;
-  padding:14px 12px;
-  cursor:pointer;
-  transition:all 0.18s;
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  position:relative;
-  overflow:hidden;
-}
-.mod-card::before {
-  content:'';
-  position:absolute;
-  top:0; left:0; right:0;
-  height:2px;
-  background:var(--mod-color, var(--accent));
-  opacity:0;
-  transition:opacity 0.18s;
-}
-.mod-card:hover { border-color:var(--border2); transform:translateY(-1px); }
-.mod-card:hover::before { opacity:1; }
-.mod-card:active { transform:scale(0.98); }
-
-.mod-card-icon {
-  font-size:24px;
-  line-height:1;
-}
-.mod-card-name {
-  font-family:var(--font-hud);
-  font-size:17px;
-  letter-spacing:2px;
-  color:var(--text);
-  line-height:1;
-}
-.mod-card-desc {
-  font-family:var(--font-mono);
-  font-size:8px;
-  color:var(--muted);
-  line-height:1.5;
-}
-.mod-card-badge {
-  position:absolute;
-  top:10px; right:10px;
-  font-family:var(--font-mono);
-  font-size:7px;
-  letter-spacing:1px;
-  padding:2px 6px;
-  border-radius:10px;
-  background:rgba(0,212,170,0.1);
-  border:1px solid var(--accent);
-  color:var(--accent);
-}
-.mod-card-badge.soon {
-  background:rgba(93,93,93,0.15);
-  border-color:var(--muted);
-  color:var(--muted);
-}
-
-/* coming soon card */
-.mod-card.coming-soon {
-  opacity:0.45;
-  cursor:default;
-}
-.mod-card.coming-soon:hover { transform:none; }
-
-/* DIVIDER */
-.home-divider {
-  height:1px;
-  background:linear-gradient(90deg, transparent, var(--border), transparent);
-  margin:16px 0;
-}
-
-/* version footer */
-.home-footer {
-  font-family:var(--font-mono);
-  font-size:8px;
-  color:var(--muted);
-  letter-spacing:1px;
-  text-align:center;
-  padding-bottom:16px;
-}
-
-/* ===================== LOADING OVERLAY ===================== */
-#mod-loader {
-  display:none;
-  position:absolute;
-  inset:0;
-  background:rgba(4,16,28,0.92);
-  z-index:100;
-  align-items:center;
-  justify-content:center;
-  flex-direction:column;
-  gap:12px;
-}
-#mod-loader.show { display:flex; }
-.loader-ring {
-  width:36px; height:36px;
-  border:2px solid var(--border);
-  border-top-color:var(--accent);
-  border-radius:50%;
-  animation:spin 0.7s linear infinite;
-}
-@keyframes spin { to { transform:rotate(360deg); } }
-.loader-txt {
-  font-family:var(--font-mono);
-  font-size:11px;
-  color:var(--accent);
-  letter-spacing:1px;
-}
-
-/* ===================== SCAN LINE EFFECT ===================== */
-@keyframes scanline {
-  0% { transform:translateY(-100%); }
-  100% { transform:translateY(100vh); }
-}
-.scan-overlay {
-  position:fixed; inset:0; z-index:0; pointer-events:none;
-  overflow:hidden;
-}
-.scan-line {
-  position:absolute;
-  width:100%;
-  height:2px;
-  background:linear-gradient(transparent, rgba(0,212,170,0.04), transparent);
-  animation:scanline 8s linear infinite;
-}
+/* ═══════════ TOAST ═══════════ */
+#toast{position:fixed;top:62px;left:50%;transform:translateX(-50%);z-index:50000;pointer-events:none;}
+.t-inner{background:var(--panel);border:1px solid var(--accent);padding:9px 18px;border-radius:10px;
+  box-shadow:0 0 20px var(--accent-glow);backdrop-filter:blur(16px);
+  display:flex;align-items:center;gap:9px;
+  opacity:0;transform:translateY(-8px);transition:all .3s cubic-bezier(.175,.885,.32,1.275);}
+.t-inner.show{opacity:1;transform:translateY(0);}
+.t-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);}
+.t-msg{font-family:var(--fmono);font-size:10px;color:var(--accent);letter-spacing:2px;}
 </style>
 </head>
 <body>
 
-<div class="scan-overlay"><div class="scan-line"></div></div>
+<div id="bg-grid"></div>
+<div id="scan-line"></div>
 
-<div id="app">
-
-  <!-- TOP BAR -->
-  <div id="topbar">
-    <div class="logo-mark">
-      <div class="logo-icon">
-        <div class="logo-cross"></div>
-      </div>
-      <div>
-        <div class="logo-text">NAVHUB</div>
-        <div class="logo-sub">MARITIME NAVIGATION SUITE</div>
-      </div>
-    </div>
-    <div class="topbar-spacer"></div>
-    <div id="clock-display">
-      <div class="clock-time" id="clk-time">--:--:--</div>
-      <div class="clock-date" id="clk-date">--- UTC</div>
-    </div>
-  </div>
-
-  <!-- MODULE NAV -->
-  <div id="nav-bar">
-    <div class="nav-item nav-home active" onclick="switchModule('home')" id="nav-home">
-      <div class="nav-icon">⊞</div>
-      <div class="nav-label">HOME</div>
-    </div>
-    <div class="nav-item" onclick="switchModule('chart-planner')" id="nav-chart-planner">
-      <div class="nav-icon">🗺</div>
-      <div class="nav-label">CHART</div>
-    </div>
-    <div class="nav-item" onclick="switchModule('passage')" id="nav-passage">
-      <div class="nav-icon">📍</div>
-      <div class="nav-label">PASSAGE</div>
-    </div>
-    <!-- More nav items added dynamically as modules are added -->
-  </div>
-
-  <!-- CONTENT -->
-  <div id="content">
-    <!-- Loading overlay -->
-    <div id="mod-loader">
-      <div class="loader-ring"></div>
-      <div class="loader-txt" id="loader-msg">LOADING MODULE...</div>
-    </div>
-
-    <!-- HOME -->
-    <div id="home-screen" class="active">
-      <div class="home-greeting">SELAMAT <span id="greeting-time">PAGI</span></div>
-      <div class="home-sub">// MARITIME NAVIGATION SUITE · NAVHUB v1.0</div>
-
-      <div class="status-strip">
-        <div class="status-pill"><div class="status-dot"></div>SYSTEM ONLINE</div>
-        <div class="status-pill" id="pill-utc"><div class="status-dot warn"></div><span id="pill-utc-txt">UTC --:--</span></div>
-        <div class="status-pill"><div class="status-dot off"></div>GPS — NOT CONNECTED</div>
-      </div>
-
-      <div class="modules-label">// ACTIVE MODULES</div>
-      <div class="modules-grid">
-
-        <div class="mod-card" style="--mod-color:var(--accent3)" onclick="switchModule('chart-planner')">
-          <div class="mod-card-badge">ACTIVE</div>
-          <div class="mod-card-icon">🗺</div>
-          <div class="mod-card-name">CHART PLANNER</div>
-          <div class="mod-card-desc">Voyage chart chain & peta referensi navigasi</div>
-        </div>
-
-        <div class="mod-card" style="--mod-color:var(--accent2)" onclick="switchModule('passage')">
-          <div class="mod-card-badge">ACTIVE</div>
-          <div class="mod-card-icon">📍</div>
-          <div class="mod-card-name">PASSAGE MON.</div>
-          <div class="mod-card-desc">Waypoint, ETA, DTG & course monitoring</div>
-        </div>
-
-      </div>
-
-      <div class="home-divider"></div>
-      <div class="modules-label">// COMING SOON</div>
-      <div class="modules-grid">
-
-        <div class="mod-card coming-soon" style="--mod-color:var(--muted)">
-          <div class="mod-card-badge soon">SOON</div>
-          <div class="mod-card-icon">⛽</div>
-          <div class="mod-card-name">FUEL CALC</div>
-          <div class="mod-card-desc">Estimasi konsumsi bahan bakar per leg</div>
-        </div>
-
-        <div class="mod-card coming-soon" style="--mod-color:var(--muted)">
-          <div class="mod-card-badge soon">SOON</div>
-          <div class="mod-card-icon">🧭</div>
-          <div class="mod-card-name">COMPASS</div>
-          <div class="mod-card-desc">Koreksi deviasi & variasi kompas</div>
-        </div>
-
-        <div class="mod-card coming-soon" style="--mod-color:var(--muted)">
-          <div class="mod-card-badge soon">SOON</div>
-          <div class="mod-card-icon">🌊</div>
-          <div class="mod-card-name">COLREGS</div>
-          <div class="mod-card-desc">Quick reference collision regulations</div>
-        </div>
-
-        <div class="mod-card coming-soon" style="--mod-color:var(--muted)">
-          <div class="mod-card-badge soon">SOON</div>
-          <div class="mod-card-icon">💨</div>
-          <div class="mod-card-name">BEAUFORT</div>
-          <div class="mod-card-desc">Skala Beaufort & kondisi cuaca laut</div>
-        </div>
-
-      </div>
-
-      <div class="home-footer">NAVHUB v1.0 · BUILD 2025 · OFFLINE CAPABLE</div>
-    </div>
-
-    <!-- MODULE FRAMES (iframes) -->
-    <iframe id="frame-chart-planner" class="module-frame" src="" title="Chart Planner"></iframe>
-    <iframe id="frame-passage" class="module-frame" src="" title="Passage Monitoring"></iframe>
-
-  </div>
+<!-- Splash -->
+<div id="splash">
+  <div class="sp-logo">NAVHUB</div>
+  <div class="sp-sub">Maritime Navigation Suite</div>
+  <div class="sp-bar"><div class="sp-fill" id="sp-fill"></div></div>
 </div>
 
+<div id="overlay" onclick="closeSB()"></div>
+
+<!-- Sidebar -->
+<aside id="sidebar">
+  <div class="sb-head">
+    <div class="sb-logo" onclick="go('home');closeSB()">NAVHUB</div>
+    <div class="sb-logo-sub">// MARITIME NAVIGATION SUITE</div>
+  </div>
+
+  <nav class="sb-nav">
+    <div class="sb-sec">// Modules</div>
+
+    <div class="sb-item active" id="si-home" onclick="go('home');closeSB()">
+      <div class="sbi-icon">⊞</div>
+      <div class="sbi-wrap"><div class="sbi-label">HOME</div><div class="sbi-desc">Dashboard & launcher</div></div>
+    </div>
+    <div class="sb-item" id="si-chart" onclick="go('chart');closeSB()">
+      <div class="sbi-icon">🗺</div>
+      <div class="sbi-wrap"><div class="sbi-label">CHART PLANNER</div><div class="sbi-desc">Voyage chart chain & peta</div></div>
+      <div class="sbi-badge">ACTIVE</div>
+    </div>
+    <div class="sb-item" id="si-passage" onclick="go('passage');closeSB()">
+      <div class="sbi-icon">📍</div>
+      <div class="sbi-wrap"><div class="sbi-label">PASSAGE MON.</div><div class="sbi-desc">Waypoint, ETA, DTG & course</div></div>
+      <div class="sbi-badge">ACTIVE</div>
+    </div>
+
+    <div class="sb-div"></div>
+    <div class="sb-sec">// Coming Soon</div>
+
+    <div class="sb-item dim"><div class="sbi-icon">⛽</div><div class="sbi-wrap"><div class="sbi-label">FUEL CALC</div><div class="sbi-desc">Estimasi konsumsi BBM</div></div><div class="sbi-badge soon">SOON</div></div>
+    <div class="sb-item dim"><div class="sbi-icon">🧭</div><div class="sbi-wrap"><div class="sbi-label">COMPASS</div><div class="sbi-desc">Koreksi deviasi & variasi</div></div><div class="sbi-badge soon">SOON</div></div>
+    <div class="sb-item dim"><div class="sbi-icon">🌊</div><div class="sbi-wrap"><div class="sbi-label">COLREGS</div><div class="sbi-desc">Collision regulations ref</div></div><div class="sbi-badge soon">SOON</div></div>
+    <div class="sb-item dim"><div class="sbi-icon">💨</div><div class="sbi-wrap"><div class="sbi-label">BEAUFORT</div><div class="sbi-desc">Skala Beaufort & cuaca laut</div></div><div class="sbi-badge soon">SOON</div></div>
+  </nav>
+
+  <div class="sb-foot">
+    <div class="sb-clk">
+      <div class="sb-clk-t" id="clk-t">--:--:--</div>
+      <div class="sb-clk-d" id="clk-d">UTC</div>
+    </div>
+    <div class="sb-stor">
+      STORAGE: <span id="stor-pct">0</span>% USED
+      <div class="sb-stor-bar"><div class="sb-stor-fill" id="stor-bar"></div></div>
+    </div>
+    <div class="sb-acts">
+      <button class="sb-act" id="night-btn" onclick="toggleNight()">🌙 NIGHT</button>
+      <button class="sb-act" onclick="toggleFS()">⛶ FULL</button>
+    </div>
+    <div class="sb-copy">HARIYANTO SJ13 · NAVHUB v2.0 · 2025</div>
+  </div>
+</aside>
+
+<!-- Topbar -->
+<div id="topbar">
+  <button class="tb-btn" onclick="openSB()">☰</button>
+  <div class="tb-title-wrap">
+    <div class="tb-title" id="tb-t">NAVHUB</div>
+    <div class="tb-sub" id="tb-s">MARITIME NAVIGATION SUITE</div>
+  </div>
+  <button class="tb-btn" id="tb-home" onclick="go('home')" title="Home" style="display:none">⌂</button>
+</div>
+
+<!-- Main -->
+<div id="main">
+
+  <!-- HOME -->
+  <div id="home" class="active">
+    <div class="h-greet">SELAMAT <em id="greet-w">PAGI</em></div>
+    <div class="h-tag">// MARITIME NAVIGATION SUITE · NAVHUB v2.0</div>
+
+    <div class="h-strip">
+      <div class="h-pill"><div class="h-dot"></div>SYSTEM ONLINE</div>
+      <div class="h-pill"><div class="h-dot warn"></div><span id="utc-pill">UTC --:--</span></div>
+      <div class="h-pill"><div class="h-dot off"></div>GPS OFFLINE</div>
+    </div>
+
+    <div class="h-sec">// Active Modules</div>
+    <div class="h-grid">
+      <div class="h-card" style="--c-accent:var(--blue)" onclick="go('chart')">
+        <div class="hc-badge">ACTIVE</div>
+        <div class="hc-icon">🗺</div>
+        <div class="hc-name">CHART</div>
+        <div class="hc-desc">Voyage chart chain & peta referensi navigasi</div>
+      </div>
+      <div class="h-card" style="--c-accent:var(--teal)" onclick="go('passage')">
+        <div class="hc-badge">ACTIVE</div>
+        <div class="hc-icon">📍</div>
+        <div class="hc-name">PASSAGE</div>
+        <div class="hc-desc">Waypoint, ETA, DTG & course monitoring</div>
+      </div>
+    </div>
+
+    <div class="h-div"></div>
+    <div class="h-sec">// Coming Soon</div>
+    <div class="h-grid">
+      <div class="h-card off"><div class="hc-badge soon">SOON</div><div class="hc-icon">⛽</div><div class="hc-name">FUEL</div><div class="hc-desc">Konsumsi bahan bakar per leg</div></div>
+      <div class="h-card off"><div class="hc-badge soon">SOON</div><div class="hc-icon">🧭</div><div class="hc-name">COMPASS</div><div class="hc-desc">Koreksi deviasi & variasi</div></div>
+      <div class="h-card off"><div class="hc-badge soon">SOON</div><div class="hc-icon">🌊</div><div class="hc-name">COLREGS</div><div class="hc-desc">Collision regulations</div></div>
+      <div class="h-card off"><div class="hc-badge soon">SOON</div><div class="hc-icon">💨</div><div class="hc-name">BEAUFORT</div><div class="hc-desc">Skala Beaufort & cuaca laut</div></div>
+    </div>
+    <div class="h-foot">NAVHUB v2.0 · OFFLINE CAPABLE · HARIYANTO SJ13</div>
+  </div>
+
+  <!-- MODULE VIEW -->
+  <div id="mod-view">
+    <div id="mod-loader"><div class="ld-ring"></div><div class="ld-txt" id="ld-txt">LOADING...</div></div>
+    <iframe id="mod-frame" title="Module" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads"></iframe>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div id="toast"><div class="t-inner" id="t-inner"><div class="t-dot"></div><span class="t-msg" id="t-msg"></span></div></div>
+
 <script>
-// ===== MODULE REGISTRY =====
-const MODULES = {
-  'chart-planner': {
-    file: 'modules/chart-planner.html',
-    label: 'CHART PLANNER',
-  },
-  'passage': {
-    file: 'modules/passage-monitoring.html',
-    label: 'PASSAGE MON.',
-  },
+'use strict';
+const MODS = {
+  chart:   {file:'modules/chart-planner.html',   title:'CHART PLANNER',      sub:'VOYAGE CHART CHAIN'},
+  passage: {file:'modules/passage-monitoring.html', title:'PASSAGE MONITORING', sub:'WAYPOINT & ETA TRACKER'},
 };
+let cur = 'home', loaded = {}, nightOn = false, toastTmr;
 
-const loadedModules = new Set();
-let currentModule = 'home';
+/* ── SPLASH ── */
+(()=>{
+  const fill = document.getElementById('sp-fill');
+  let p=0;
+  const iv = setInterval(()=>{
+    p += Math.random()*20+8; if(p>=100){p=100;clearInterval(iv);}
+    fill.style.width=p+'%';
+    if(p>=100) setTimeout(()=>document.getElementById('splash').classList.add('hide'),280);
+  },75);
+})();
 
-function switchModule(id) {
-  // Update nav
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const navEl = document.getElementById('nav-' + id);
-  if (navEl) navEl.classList.add('active');
+/* ── SIDEBAR ── */
+function openSB(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('show'); }
+function closeSB(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
 
-  // Hide all
-  document.getElementById('home-screen').classList.remove('active');
-  document.querySelectorAll('.module-frame').forEach(f => f.classList.remove('active'));
-
-  if (id === 'home') {
-    document.getElementById('home-screen').classList.add('active');
-    currentModule = 'home';
-    return;
-  }
-
-  const mod = MODULES[id];
-  if (!mod) return;
-
-  const frame = document.getElementById('frame-' + id);
-  if (!frame) return;
-
-  if (!loadedModules.has(id)) {
-    // Show loader
-    const loader = document.getElementById('mod-loader');
-    const msg = document.getElementById('loader-msg');
-    msg.textContent = 'LOADING ' + mod.label + '...';
-    loader.classList.add('show');
-
-    frame.src = mod.file;
-    frame.onload = () => {
-      loadedModules.add(id);
-      loader.classList.remove('show');
-      frame.classList.add('active');
-    };
-    // Fallback timeout
-    setTimeout(() => loader.classList.remove('show'), 5000);
-  } else {
-    frame.classList.add('active');
-  }
-
-  currentModule = id;
+/* ── NAVIGATE ── */
+function go(id){
+  cur = id;
+  document.querySelectorAll('.sb-item').forEach(e=>e.classList.remove('active'));
+  const si = document.getElementById('si-'+id); if(si) si.classList.add('active');
+  document.getElementById('tb-home').style.display = id==='home'?'none':'flex';
+  id==='home' ? showHome() : loadMod(id);
 }
 
-// ===== CLOCK =====
-function updateClock() {
-  const now = new Date();
-  const utc = new Date(now.toISOString());
-  const hh = String(utc.getUTCHours()).padStart(2,'0');
-  const mm = String(utc.getUTCMinutes()).padStart(2,'0');
-  const ss = String(utc.getUTCSeconds()).padStart(2,'0');
-  const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
-  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-  const day = days[utc.getUTCDay()];
-  const date = String(utc.getUTCDate()).padStart(2,'0');
-  const mon = months[utc.getUTCMonth()];
-  const yr = utc.getUTCFullYear();
-
-  document.getElementById('clk-time').textContent = `${hh}:${mm}:${ss}`;
-  document.getElementById('clk-date').textContent = `${day} ${date} ${mon} ${yr} UTC`;
-  document.getElementById('pill-utc-txt').textContent = `UTC ${hh}:${mm}`;
-
-  // Greeting
-  const localH = now.getHours();
-  let gr = 'PAGI';
-  if (localH >= 11 && localH < 15) gr = 'SIANG';
-  else if (localH >= 15 && localH < 19) gr = 'SORE';
-  else if (localH >= 19 || localH < 5) gr = 'MALAM';
-  document.getElementById('greeting-time').textContent = gr;
+function showHome(){
+  document.getElementById('home').classList.add('active');
+  document.getElementById('mod-view').classList.remove('active');
+  document.getElementById('mod-view').style.display='none';
+  setTB('NAVHUB','MARITIME NAVIGATION SUITE');
 }
-updateClock();
-setInterval(updateClock, 1000);
+
+function loadMod(id){
+  const m = MODS[id]; if(!m) return;
+  document.getElementById('home').classList.remove('active');
+  const mv = document.getElementById('mod-view');
+  mv.style.display='block'; mv.classList.add('active');
+  setTB(m.title, m.sub);
+  const fr = document.getElementById('mod-frame');
+  if(loaded[id] && fr.dataset.cur===id) return;
+  showLd(m.title);
+  fr.src = m.file; fr.dataset.cur = id;
+  fr.onload = ()=>{ loaded[id]=true; hideLd(); try{fr.contentWindow._navhub={go};}catch(e){} };
+  setTimeout(hideLd,7000);
+}
+
+function setTB(t,s){ document.getElementById('tb-t').textContent=t; document.getElementById('tb-s').textContent=s; }
+function showLd(l){ document.getElementById('ld-txt').textContent='LOADING '+l+'...'; document.getElementById('mod-loader').classList.add('show'); }
+function hideLd(){ document.getElementById('mod-loader').classList.remove('show'); }
+window.switchModule = go;
+
+/* ── CLOCK ── */
+function tick(){
+  const n=new Date();
+  const hh=String(n.getUTCHours()).padStart(2,'0'),mm=String(n.getUTCMinutes()).padStart(2,'0'),ss=String(n.getUTCSeconds()).padStart(2,'0');
+  const D=['SUN','MON','TUE','WED','THU','FRI','SAT'],M=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  document.getElementById('clk-t').textContent=`${hh}:${mm}:${ss}`;
+  document.getElementById('clk-d').textContent=`${D[n.getUTCDay()]} ${String(n.getUTCDate()).padStart(2,'0')} ${M[n.getUTCMonth()]} ${n.getUTCFullYear()} UTC`;
+  document.getElementById('utc-pill').textContent=`UTC ${hh}:${mm}`;
+  const h=n.getHours(); let g='PAGI';
+  if(h>=11&&h<15)g='SIANG'; else if(h>=15&&h<19)g='SORE'; else if(h>=19||h<5)g='MALAM';
+  document.getElementById('greet-w').textContent=g;
+}
+tick(); setInterval(tick,1000);
+
+/* ── NIGHT MODE ── */
+function toggleNight(){
+  nightOn=!nightOn;
+  document.body.classList.toggle('night',nightOn);
+  const b=document.getElementById('night-btn');
+  b.classList.toggle('on',nightOn); b.textContent=nightOn?'☀ DAY':'🌙 NIGHT';
+  localStorage.setItem('nh-night',nightOn?'1':'0');
+  toast(nightOn?'NIGHT MODE ON':'DAY MODE');
+}
+if(localStorage.getItem('nh-night')==='1'){nightOn=true;document.body.classList.add('night');const b=document.getElementById('night-btn');b.classList.add('on');b.textContent='☀ DAY';}
+
+/* ── FULLSCREEN ── */
+function toggleFS(){
+  if(!document.fullscreenElement&&!document.webkitFullscreenElement)
+    (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen).call(document.documentElement);
+  else (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+}
+
+/* ── STORAGE ── */
+function updStor(){
+  try{
+    let t=0; for(let k in localStorage)if(localStorage.hasOwnProperty(k))t+=(localStorage[k].length+k.length)*2;
+    const p=Math.min((t/(5*1024*1024))*100,100).toFixed(1);
+    document.getElementById('stor-pct').textContent=p;
+    const b=document.getElementById('stor-bar'); b.style.width=p+'%';
+    b.className='sb-stor-fill'+(p>85?' danger':p>65?' warn':'');
+  }catch(e){}
+}
+updStor(); setInterval(updStor,15000);
+
+/* ── TOAST ── */
+function toast(msg){
+  const i=document.getElementById('t-inner'); document.getElementById('t-msg').textContent=msg;
+  i.classList.add('show'); clearTimeout(toastTmr); toastTmr=setTimeout(()=>i.classList.remove('show'),2800);
+}
+
+/* ── ANDROID BACK ── */
+history.replaceState({nh:'home'},'');
+window.addEventListener('popstate',()=>{
+  if(document.getElementById('sidebar').classList.contains('open')){closeSB();history.pushState({nh:'mod'},'');return;}
+  if(cur!=='home'){go('home');}
+});
+
+/* ── INIT ── */
+showHome();
 </script>
 </body>
-</html>
+</html
