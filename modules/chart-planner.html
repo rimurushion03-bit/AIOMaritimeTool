@@ -3,290 +3,314 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Voyage Chart Planner</title>
+<meta name="theme-color" content="#04101c">
+<title>Chart Planner — NavHub</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Teko:wght@400;600&family=JetBrains+Mono:wght@400;600&family=Noto+Sans:wght@300;400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600&family=JetBrains+Mono:wght@300;400;600&family=Noto+Sans:wght@300;400;600&display=swap');
 
 :root {
-  --bg: #06111e;
-  --bg2: #091929;
-  --panel: #0b1f33;
-  --border: #153050;
-  --accent: #00d4aa;
-  --accent2: #ff8c42;
-  --accent3: #4a9eff;
-  --text: #c8dff0;
-  --muted: #4a6a8a;
-  --chain: #ffd700;
+  --bg:#04101c; --bg2:#061624; --bg3:#07192a;
+  --panel:rgba(9,30,48,0.97); --ps:#091e30;
+  --border:rgba(0,212,170,0.13); --border2:rgba(0,212,170,0.26);
+  --accent:#00d4aa; --adim:rgba(0,212,170,0.10); --aglow:rgba(0,212,170,0.22);
+  --orange:#ff8c42; --gold:#ffd700; --blue:#4a9eff; --purple:#a78bfa;
+  --danger:#ef4444; --success:#10b981; --warn:#f59e0b;
+  --text:#c8ddf0; --muted:#3d6080; --muted2:#5a7a96;
+  --fhud:'Teko',sans-serif; --fmono:'JetBrains Mono',monospace; --fbody:'Noto Sans',sans-serif;
 }
+body.night {
+  --bg:#000; --bg2:#07000a; --bg3:#0a0008;
+  --panel:rgba(18,3,3,0.97); --ps:#120303;
+  --border:rgba(255,34,34,0.16); --border2:rgba(255,34,34,0.3);
+  --accent:#ff2222; --adim:rgba(255,34,34,0.10); --aglow:rgba(255,34,34,0.22);
+  --text:#ffaaaa; --muted:#4a1a1a; --muted2:#7a3232;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--fbody);}
+#app{display:flex;flex-direction:column;height:100dvh;position:relative;z-index:1;}
 
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:'Noto Sans',sans-serif; }
-#app { display:flex; flex-direction:column; height:100dvh; }
+/* BG */
+#bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:44px 44px;opacity:.4;}
+@keyframes scan{0%{transform:translateY(-4px);}100%{transform:translateY(100vh);}}
+#scan-line{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+#scan-line::after{content:'';position:absolute;width:100%;height:3px;
+  background:linear-gradient(transparent,var(--aglow),transparent);animation:scan 14s linear infinite;}
 
 /* HEADER */
-#header {
-  flex-shrink:0; background:var(--panel);
-  border-bottom:1px solid var(--border);
-  padding:10px 14px; display:flex; align-items:center; gap:8px; z-index:1000;
-}
-.logo { font-family:'Teko',sans-serif; font-size:22px; font-weight:600; letter-spacing:3px; color:var(--accent); line-height:1; flex-shrink:0; }
-.logo span { color:var(--text); opacity:0.4; }
-.sub { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--muted); letter-spacing:1px; display:none; }
-@media(min-width:400px){ .sub { display:block; } }
+#hdr{flex-shrink:0;background:var(--panel);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border2);padding:8px 12px;
+  display:flex;align-items:center;gap:7px;z-index:500;position:relative;}
+#hdr::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.3;}
+.hbk{height:30px;padding:0 9px;background:transparent;border:1px solid var(--orange);
+  border-radius:7px;color:var(--orange);font-family:var(--fmono);font-size:10px;
+  letter-spacing:1px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.hbk:hover{background:rgba(255,140,66,.12);}
+.hlogo{font-family:var(--fhud);font-size:22px;font-weight:600;letter-spacing:4px;color:var(--accent);line-height:1;flex-shrink:0;}
+.hlogo-s{font-family:var(--fmono);font-size:8px;letter-spacing:1px;color:var(--muted2);}
+.hsp{flex:1;}
+.hbtn{height:30px;padding:0 9px;background:transparent;border:1px solid var(--border2);
+  border-radius:7px;color:var(--muted2);font-family:var(--fmono);font-size:9px;letter-spacing:1px;
+  cursor:pointer;transition:all .15s;flex-shrink:0;display:flex;align-items:center;gap:4px;}
+.hbtn:hover,.hbtn:active{background:var(--adim);border-color:var(--accent);color:var(--accent);}
+.hbtn.on{background:var(--adim);border-color:var(--accent);color:var(--accent);}
+.hbtn.chain-on{background:rgba(255,215,0,.12);border-color:var(--gold);color:var(--gold);}
 
-.hbtn {
-  padding:6px 10px; background:transparent; border:1px solid var(--border);
-  border-radius:6px; color:var(--muted); font-family:'JetBrains Mono',monospace;
-  font-size:10px; letter-spacing:1px; cursor:pointer; transition:all 0.15s; flex-shrink:0;
-}
-.hbtn:active { background:var(--border); }
-.hbtn.accent { border-color:var(--accent); color:var(--accent); margin-left:auto; }
-.hbtn.on { background:var(--accent2); border-color:var(--accent2); color:var(--bg); }
-.hbtn.chain-active { background:var(--chain); border-color:var(--chain); color:var(--bg); }
+/* FILTER TOGGLE TAB */
+#fbt{display:flex;align-items:center;justify-content:center;height:14px;
+  background:var(--bg2);border-bottom:1px solid var(--border);cursor:pointer;flex-shrink:0;user-select:none;}
+.fbt-a{font-size:8px;color:var(--muted);transition:transform .3s;}
+.fb-col .fbt-a{transform:rotate(180deg);}
 
 /* FILTER BAR */
-#filterBar {
-  flex-shrink:0; display:flex; gap:5px; padding:7px 14px;
-  overflow-x:auto; scrollbar-width:none; background:var(--bg2); border-bottom:1px solid var(--border);
-}
-#filterBar::-webkit-scrollbar { display:none; }
-.fbtn {
-  flex-shrink:0; padding:4px 10px; border-radius:20px; border:1px solid var(--border);
-  background:transparent; color:var(--muted); font-family:'JetBrains Mono',monospace;
-  font-size:10px; cursor:pointer; transition:all 0.15s; white-space:nowrap;
-}
-.fbtn.on { border-color:var(--accent); color:var(--accent); background:rgba(0,212,170,0.08); }
+#fbWrap{flex-shrink:0;overflow:hidden;transition:max-height .3s;max-height:46px;}
+#fbWrap.col{max-height:0;}
+#filterBar{display:flex;gap:5px;padding:6px 12px;background:var(--bg2);
+  border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+#filterBar::-webkit-scrollbar{display:none;}
+.fbtn{flex-shrink:0;padding:4px 10px;border-radius:20px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-family:var(--fmono);font-size:9px;
+  cursor:pointer;transition:all .15s;white-space:nowrap;}
+.fbtn.on{border-color:var(--accent);color:var(--accent);background:var(--adim);}
 
-/* MAIN AREA */
-#main { flex:1; display:flex; flex-direction:column; min-height:0; position:relative; }
-
-/* MAP MODE */
-#mapWrap { flex:1; min-height:0; position:relative; display:flex; flex-direction:column; }
-#map { flex:1; min-height:0; }
-.leaflet-container { background:#06111e !important; }
-.leaflet-tile { filter:brightness(0.65) saturate(0.5); }
-.leaflet-control-zoom a { background:var(--panel) !important; color:var(--accent) !important; border-color:var(--border) !important; }
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;min-height:0;position:relative;}
+#mapWrap{flex:1;min-height:0;display:flex;flex-direction:column;}
+#map{flex:1;min-height:0;}
+.leaflet-container{background:#04101c !important;}
+.leaflet-tile{filter:brightness(.65) saturate(.5);}
+body.night .leaflet-tile{filter:brightness(.35) saturate(.2) hue-rotate(330deg);}
+.leaflet-control-zoom a{background:var(--ps) !important;color:var(--accent) !important;border-color:var(--border) !important;}
+.leaflet-tooltip{background:var(--ps) !important;border:1px solid var(--accent) !important;color:var(--text) !important;
+  font-family:var(--fmono) !important;font-size:10px !important;border-radius:6px !important;
+  padding:5px 9px !important;box-shadow:none !important;}
+.leaflet-tooltip::before{display:none !important;}
 
 /* TEXT MODE */
-#textMode {
-  display:none; flex:1; overflow-y:auto; padding:12px 14px;
-  background:var(--bg);
-}
-#textMode.show { display:block; }
-
-.tcard {
-  background:var(--panel); border:1px solid var(--border); border-radius:8px;
-  padding:10px 12px; margin-bottom:7px; display:flex; align-items:center; gap:10px;
-  cursor:pointer; transition:border-color 0.15s; animation:fadeIn 0.2s ease;
-}
-@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
-.tcard.inchain { border-color:var(--chain); background:rgba(255,215,0,0.05); }
-.tcard-no { font-family:'Teko',sans-serif; font-size:22px; color:#fff; line-height:1; width:52px; flex-shrink:0; }
-.tcard.inchain .tcard-no { color:var(--chain); }
-.tcard-info { flex:1; min-width:0; }
-.tcard-title { font-size:11px; color:var(--text); line-height:1.4; }
-.tcard-meta { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--muted); margin-top:3px; }
-.tcard-scale { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--accent3); flex-shrink:0; text-align:right; }
-
-.tsearch {
-  position:sticky; top:0; background:var(--bg); padding-bottom:10px; z-index:5;
-}
-.tsearch input {
-  width:100%; background:var(--panel); border:1px solid var(--border);
-  border-radius:8px; color:var(--text); font-family:'JetBrains Mono',monospace;
-  font-size:12px; padding:8px 12px; outline:none;
-}
-.tsearch input::placeholder { color:var(--muted); }
+#txm{display:none;flex:1;overflow-y:auto;padding:10px 12px;background:var(--bg);}
+#txm.show{display:block;}
+.ts{position:sticky;top:0;background:var(--bg);padding-bottom:8px;z-index:5;}
+.ts input{width:100%;background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-family:var(--fmono);font-size:11px;padding:8px 12px;outline:none;transition:border-color .15s;}
+.ts input::placeholder{color:var(--muted);}
+.ts input:focus{border-color:var(--accent);}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.tcard{background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;
+  cursor:pointer;transition:border-color .15s;animation:fi .2s ease;}
+.tcard.inc{border-color:var(--gold);background:rgba(255,215,0,.05);}
+.tno{font-family:var(--fhud);font-size:22px;color:var(--text);line-height:1;width:52px;flex-shrink:0;}
+.tcard.inc .tno{color:var(--gold);}
+.tinf{flex:1;min-width:0;}
+.ttl{font-size:11px;color:var(--text);line-height:1.4;}
+.tmt{font-family:var(--fmono);font-size:9px;color:var(--muted);margin-top:3px;}
+.tsc{font-family:var(--fmono);font-size:10px;color:var(--blue);flex-shrink:0;text-align:right;}
+.empty{text-align:center;padding:28px 20px;font-family:var(--fmono);font-size:11px;color:var(--muted);line-height:1.9;}
 
 /* BOTTOM SHEET */
-#sheet {
-  flex-shrink:0; background:var(--panel);
-  border-top:2px solid var(--border);
-  display:flex; flex-direction:column;
-  transition:height 0.3s ease;
-  height:44px;
-}
-#sheet.expanded { height:40vh; }
-
-#sheetHandle {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:0 14px; height:44px; cursor:pointer; flex-shrink:0;
-  border-bottom:1px solid var(--border); user-select:none;
-}
-.sht-title { font-family:'Teko',sans-serif; font-size:17px; letter-spacing:2px; }
-.sht-right { display:flex; align-items:center; gap:10px; }
-.sht-count { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--chain); }
-.sht-arrow { color:var(--muted); font-size:14px; transition:transform 0.3s; }
-#sheet:not(.expanded) .sht-arrow { transform:rotate(180deg); }
-
-#sheetTabs { display:flex; border-bottom:1px solid var(--border); flex-shrink:0; }
-.stab {
-  flex:1; padding:8px; text-align:center; font-family:'JetBrains Mono',monospace;
-  font-size:10px; letter-spacing:1px; color:var(--muted); cursor:pointer;
-  border-bottom:2px solid transparent; transition:all 0.15s;
-}
-.stab.on { color:var(--accent2); border-bottom-color:var(--accent2); }
-
-#sheetBody { flex:1; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+#sheet{flex-shrink:0;background:var(--panel);border-top:2px solid var(--border2);
+  display:flex;flex-direction:column;transition:height .3s;height:44px;}
+#sheet.exp{height:42vh;}
+#shhd{display:flex;align-items:center;justify-content:space-between;padding:0 14px;height:44px;
+  cursor:pointer;flex-shrink:0;border-bottom:1px solid var(--border);user-select:none;}
+.sht{font-family:var(--fhud);font-size:18px;letter-spacing:3px;}
+.shr{display:flex;align-items:center;gap:10px;}
+.shc{font-family:var(--fmono);font-size:11px;color:var(--gold);}
+.sha{color:var(--muted);font-size:13px;transition:transform .3s;}
+#sheet:not(.exp) .sha{transform:rotate(180deg);}
+#shtabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.stab{flex:1;padding:8px;text-align:center;font-family:var(--fmono);font-size:9px;
+  letter-spacing:1px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.stab.on{color:var(--orange);border-bottom-color:var(--orange);}
+#shbd{flex:1;overflow-y:auto;overscroll-behavior:contain;}
 
 /* CHAIN LIST */
-.ci {
-  display:flex; align-items:center; gap:8px;
-  padding:10px 14px; border-bottom:1px solid var(--border);
-}
-.cnum { font-family:'Teko',sans-serif; font-size:20px; color:var(--chain); width:22px; text-align:center; flex-shrink:0; }
-.cinfo { flex:1; min-width:0; }
-.cid { font-family:'JetBrains Mono',monospace; font-size:12px; color:#fff; font-weight:600; }
-.clayer { font-size:9px; color:var(--muted); margin-left:4px; }
-.ctitle { font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
-.cscale { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--accent3); flex-shrink:0; }
-.cacts { display:flex; gap:3px; flex-shrink:0; }
-.cact {
-  width:28px; height:28px; background:transparent; border:1px solid var(--border);
-  border-radius:5px; color:var(--muted); font-size:13px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center; transition:all 0.15s;
-}
-.cact:active { background:var(--border); color:#fff; }
+.ci{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);}
+.cnum{font-family:var(--fhud);font-size:20px;color:var(--gold);width:22px;text-align:center;flex-shrink:0;}
+.cinf{flex:1;min-width:0;}
+.cid{font-family:var(--fmono);font-size:12px;color:var(--text);font-weight:600;}
+.cly{font-size:9px;color:var(--muted);margin-left:4px;}
+.ctl{font-size:11px;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.csc{font-family:var(--fmono);font-size:9px;color:var(--blue);flex-shrink:0;}
+.cacts{display:flex;gap:3px;flex-shrink:0;}
+.cact{width:28px;height:28px;background:transparent;border:1px solid var(--border);border-radius:5px;
+  color:var(--muted2);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.cact:hover{background:var(--adim);border-color:var(--accent);color:var(--accent);}
 
 /* EXPORT */
-#expWrap { padding:14px; }
-#exportText {
-  width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px;
-  color:var(--text); font-family:'JetBrains Mono',monospace; font-size:10px;
-  padding:10px; resize:none; height:120px; outline:none; line-height:1.6;
-}
-.expbtns { display:flex; gap:8px; margin-top:8px; }
-.expbtn {
-  flex:1; padding:10px; border-radius:7px; border:none;
-  font-family:'Teko',sans-serif; font-size:16px; letter-spacing:2px; cursor:pointer;
-}
-.eprimary { background:var(--accent); color:var(--bg); }
-.esecondary { background:var(--border); color:var(--text); }
+#expw{padding:12px;}
+#exportText{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-family:var(--fmono);font-size:10px;padding:10px;
+  resize:none;height:110px;outline:none;line-height:1.6;}
+#exportText:focus{border-color:var(--accent);}
+.expbtns{display:flex;gap:6px;margin-top:8px;}
+.expbtn{flex:1;padding:9px;border-radius:7px;border:none;font-family:var(--fhud);font-size:15px;letter-spacing:2px;cursor:pointer;}
+.ep{background:var(--accent);color:var(--bg);}
+.es{background:var(--border2);color:var(--text);}
 
-.empty { text-align:center; padding:28px 20px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); line-height:1.9; }
+/* WP PANEL */
+#wpPanel{display:none;position:fixed;inset:0;z-index:3000;
+  background:rgba(4,16,28,.97);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);flex-direction:column;}
+#wpPanel.show{display:flex;}
+.oph{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.opt{font-family:var(--fhud);font-size:20px;letter-spacing:2px;color:var(--accent);flex:1;}
+.opc{padding:6px 12px;background:transparent;border:1px solid var(--border2);border-radius:6px;
+  color:var(--muted2);font-family:var(--fmono);font-size:10px;letter-spacing:1px;cursor:pointer;transition:all .15s;}
+.opc:hover{background:var(--adim);border-color:var(--accent);color:var(--accent);}
+.opb{flex:1;overflow-y:auto;padding:14px;}
+.ops{font-family:var(--fmono);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
 
-/* Leaflet tooltip */
-.leaflet-tooltip {
-  background:var(--panel) !important; border:1px solid var(--accent) !important;
-  color:var(--text) !important; font-family:'JetBrains Mono',monospace !important;
-  font-size:10px !important; border-radius:5px !important; padding:5px 9px !important;
-  box-shadow:none !important;
-}
-.leaflet-tooltip::before { display:none !important; }
+/* GPX Banner */
+.gpx-banner{background:rgba(0,212,170,.07);border:1px solid var(--border2);border-radius:9px;
+  padding:11px 13px;margin-bottom:14px;display:none;}
+.gpx-banner.show{display:block;}
+.gpx-banner-head{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.gpx-banner-icon{font-size:14px;}
+.gpx-banner-title{font-family:var(--fmono);font-size:9px;letter-spacing:1.5px;color:var(--accent);}
+.gpx-banner-txt{font-family:var(--fmono);font-size:9px;color:var(--muted2);line-height:1.6;margin-bottom:9px;}
+.gpx-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.gpx-btn{padding:5px 11px;border-radius:6px;border:1px solid var(--border2);
+  background:transparent;color:var(--muted2);font-family:var(--fmono);font-size:9px;
+  cursor:pointer;transition:all .15s;letter-spacing:.5px;}
+.gpx-btn:hover{background:var(--adim);border-color:var(--accent);color:var(--accent);}
+.gpx-btn.primary{border-color:var(--accent);color:var(--accent);background:var(--adim);}
+.gpx-btn.toggle-on{border-color:var(--accent);color:var(--accent);background:var(--adim);}
+.gpx-btn.toggle-off{border-color:var(--muted);color:var(--muted);}
+
+/* WP FORM */
+.opf{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;}
+.opr{display:flex;gap:8px;margin-bottom:8px;}
+.opr:last-child{margin-bottom:0;}
+.opi{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  color:var(--text);font-family:var(--fmono);font-size:11px;padding:7px 10px;outline:none;min-width:0;transition:border-color .15s;}
+.opi::placeholder{color:var(--muted);}
+.opi:focus{border-color:var(--accent);}
+.opar{display:flex;gap:6px;}
+.opab{flex:1;padding:9px;background:var(--accent);border:none;border-radius:7px;
+  color:var(--bg);font-family:var(--fhud);font-size:15px;letter-spacing:2px;cursor:pointer;}
+.oppb{flex:1;padding:9px;background:transparent;border:1px solid var(--border2);border-radius:7px;
+  color:var(--muted2);font-family:var(--fhud);font-size:15px;letter-spacing:2px;cursor:pointer;transition:all .15s;}
+.oppb:hover{border-color:var(--accent);color:var(--accent);}
+#wpa{display:none;margin-top:8px;}
+#wpa textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-family:var(--fmono);font-size:10px;padding:10px;resize:none;height:88px;outline:none;line-height:1.6;}
+#wpa textarea:focus{border-color:var(--accent);}
+.opprs{width:100%;margin-top:6px;padding:9px;background:var(--orange);border:none;border-radius:7px;
+  color:var(--bg);font-family:var(--fhud);font-size:15px;letter-spacing:2px;cursor:pointer;}
+#wpErr{color:#ff6666;font-family:var(--fmono);font-size:10px;margin-top:6px;display:none;}
+.wp-item{display:flex;align-items:center;gap:8px;padding:8px 10px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:7px;margin-bottom:6px;}
+.wp-num{font-family:var(--fhud);font-size:18px;color:var(--accent);width:20px;flex-shrink:0;}
+.wp-inf{flex:1;min-width:0;}
+.wp-nm{font-family:var(--fmono);font-size:11px;color:var(--text);font-weight:600;}
+.wp-co{font-family:var(--fmono);font-size:9px;color:var(--muted2);margin-top:2px;}
+.wp-del{width:26px;height:26px;background:transparent;border:1px solid var(--border2);
+  border-radius:5px;color:var(--muted2);cursor:pointer;font-size:12px;transition:all .15s;}
+.wp-del:hover{border-color:var(--danger);color:var(--danger);}
+#wpDb{width:100%;padding:10px;background:var(--accent);border:none;border-radius:7px;
+  color:var(--bg);font-family:var(--fhud);font-size:16px;letter-spacing:2px;cursor:pointer;margin-top:4px;display:none;}
+#wpCb{width:100%;padding:10px;background:transparent;border:1px solid var(--border2);border-radius:7px;
+  color:var(--muted2);font-family:var(--fhud);font-size:16px;letter-spacing:2px;cursor:pointer;margin-top:6px;display:none;transition:all .15s;}
+#wpCb:hover{border-color:var(--danger);color:var(--danger);}
 
 /* LOADING */
-#loadOver {
-  display:none; position:fixed; inset:0; background:rgba(6,17,30,0.93);
-  z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:12px;
-}
-#loadOver.show { display:flex; }
-.spin { width:32px; height:32px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:sp 0.7s linear infinite; }
-@keyframes sp { to{transform:rotate(360deg)} }
-#loadTxt { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--accent); }
+#ldo{display:none;position:fixed;inset:0;background:rgba(4,16,28,.93);
+  z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+#ldo.show{display:flex;}
+.spin{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--accent);
+  border-radius:50%;animation:sp .7s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+#ldtxt{font-family:var(--fmono);font-size:11px;color:var(--accent);letter-spacing:2px;}
 
-  /* WAYPOINT PANEL */
-  #wpPanel { display:none; position:fixed; inset:0; z-index:2000; background:rgba(6,17,30,0.97); flex-direction:column; }
-  #wpPanel.show { display:flex; }
-  #wpHeader { display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--border); flex-shrink:0; }
-  #wpHeader .wptitle { font-family:'Teko',sans-serif; font-size:20px; letter-spacing:2px; flex:1; }
-  #wpClose { padding:6px 12px; background:transparent; border:1px solid var(--border); border-radius:6px; color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:11px; cursor:pointer; }
-  #wpBody { flex:1; overflow-y:auto; padding:14px; }
-  .wp-section { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; }
-  #wpAddForm { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:12px; }
-  .wp-row { display:flex; gap:8px; margin-bottom:8px; }
-  .wp-inp { flex:1; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:11px; padding:7px 10px; outline:none; min-width:0; }
-  .wp-inp::placeholder { color:var(--muted); }
-  .wp-inp:focus { border-color:var(--accent); }
-  .wp-addrow { display:flex; gap:6px; }
-  .wp-addbtn { flex:1; padding:9px; background:var(--accent); border:none; border-radius:7px; color:var(--bg); font-family:'Teko',sans-serif; font-size:15px; letter-spacing:2px; cursor:pointer; }
-  .wp-pastebtn { flex:1; padding:9px; background:transparent; border:1px solid var(--border); border-radius:7px; color:var(--muted); font-family:'Teko',sans-serif; font-size:15px; letter-spacing:2px; cursor:pointer; }
-  #wpPasteArea { display:none; margin-top:8px; }
-  #wpPasteArea textarea { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:10px; padding:10px; resize:none; height:90px; outline:none; line-height:1.6; }
-  .wp-parsebtn { width:100%; margin-top:6px; padding:9px; background:var(--accent2); border:none; border-radius:7px; color:var(--bg); font-family:'Teko',sans-serif; font-size:15px; letter-spacing:2px; cursor:pointer; }
-  #wpParseErr { color:#ff6666; font-family:'JetBrains Mono',monospace; font-size:10px; margin-top:6px; display:none; }
-  #wpListTitle { margin-top:4px; }
-  .wp-item { display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--panel); border:1px solid var(--border); border-radius:7px; margin-bottom:6px; }
-  .wp-num { font-family:'Teko',sans-serif; font-size:18px; color:var(--accent); width:20px; flex-shrink:0; }
-  .wp-info { flex:1; min-width:0; }
-  .wp-name { font-family:'JetBrains Mono',monospace; font-size:11px; color:#fff; font-weight:600; }
-  .wp-coord { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--muted); margin-top:2px; }
-  .wp-del { width:26px; height:26px; background:transparent; border:1px solid var(--border); border-radius:5px; color:var(--muted); cursor:pointer; font-size:12px; }
-  .wp-del:active { color:#ff4444; border-color:#ff4444; }
-  #wpDrawBtn { width:100%; padding:10px; background:var(--accent); border:none; border-radius:7px; color:var(--bg); font-family:'Teko',sans-serif; font-size:16px; letter-spacing:2px; cursor:pointer; margin-top:4px; display:none; }
-  #wpClearBtn { width:100%; padding:10px; background:transparent; border:1px solid var(--border); border-radius:7px; color:var(--muted); font-family:'Teko',sans-serif; font-size:16px; letter-spacing:2px; cursor:pointer; margin-top:6px; display:none; }
+/* TOAST */
+#toast{position:fixed;top:50px;left:50%;transform:translateX(-50%);z-index:9998;pointer-events:none;}
+.ti{background:var(--panel);border:1px solid var(--accent);padding:8px 16px;border-radius:20px;
+  box-shadow:0 0 18px var(--aglow);backdrop-filter:blur(16px);
+  font-family:var(--fmono);font-size:10px;color:var(--accent);letter-spacing:2px;
+  opacity:0;transform:translateY(-6px);transition:all .3s cubic-bezier(.175,.885,.32,1.275);}
+.ti.show{opacity:1;transform:translateY(0);}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--muted);border-radius:3px;}
 </style>
 </head>
 <body>
+<div id="bg-grid"></div>
+<div id="scan-line"></div>
+
 <div id="app">
 
   <!-- HEADER -->
-  <div id="header">
-    <button class="hbtn" onclick="try{window.parent.switchModule('home')}catch(e){history.back()}" title="NavHub" style="border-color:#ff8c42;color:#ff8c42;padding:5px 9px;font-size:13px;">⊞</button>
-    <div class="logo">VCP<span>·</span>PLI</div>
-    <span class="sub">VOYAGE CHART PLANNER</span>
+  <div id="hdr">
+    <button class="hbk" onclick="try{window.parent.switchModule('home')}catch(e){history.back()}">⊞ HUB</button>
+    <div>
+      <div class="hlogo">CHART PLN</div>
+      <div class="hlogo-s">VOYAGE CHART PLANNER</div>
+    </div>
+    <div class="hsp"></div>
     <button class="hbtn" id="modeBtn" onclick="toggleMode()">🗺 MAP</button>
-    <button class="hbtn" id="wpBtn" onclick="toggleWpPanel()" title="Waypoints">📍</button>
+    <button class="hbtn" id="wpBtn" onclick="toggleWpPanel()">📍 WP</button>
     <button class="hbtn" id="chainModeBtn" onclick="toggleChainMode()" title="Chain Mode">⛓</button>
-    <button class="hbtn accent" onclick="document.getElementById('fileIn').click()">📂</button>
+    <button class="hbtn" onclick="document.getElementById('fileIn').click()" title="Load JSON manual">📂</button>
     <input type="file" id="fileIn" accept=".json" style="display:none" onchange="loadFile(event)">
   </div>
 
-  <!-- FILTER -->
-  <div id="filterBar">
-    <button class="fbtn on" data-layer="ALL" onclick="setFilter('ALL',this)">ALL</button>
-    <button class="fbtn" data-layer="GENERAL" onclick="setFilter('GENERAL',this)">🌐 GENERAL</button>
-    <button class="fbtn" data-layer="OVERVIEW" onclick="setFilter('OVERVIEW',this)">🗺 OVERVIEW</button>
-    <button class="fbtn" data-layer="COASTAL" onclick="setFilter('COASTAL',this)">🏖 COASTAL</button>
-    <button class="fbtn" data-layer="APPROACH" onclick="setFilter('APPROACH',this)">🧭 APPROACH</button>
-    <button class="fbtn" data-layer="HARBOUR" onclick="setFilter('HARBOUR',this)">🏗 HARBOUR</button>
-    <button class="fbtn" data-layer="BERTHING" onclick="setFilter('BERTHING',this)">⚓ BERTHING</button>
+  <!-- FILTER TOGGLE -->
+  <div id="fbt" onclick="toggleFB()"><span class="fbt-a" id="fbt-arrow">▲</span></div>
+
+  <!-- FILTER BAR -->
+  <div id="fbWrap">
+    <div id="filterBar">
+      <button class="fbtn on" data-layer="ALL" onclick="setFilter('ALL',this)">ALL</button>
+      <button class="fbtn" data-layer="GENERAL" onclick="setFilter('GENERAL',this)">🌐 GENERAL</button>
+      <button class="fbtn" data-layer="OVERVIEW" onclick="setFilter('OVERVIEW',this)">🗺 OVERVIEW</button>
+      <button class="fbtn" data-layer="COASTAL" onclick="setFilter('COASTAL',this)">🏖 COASTAL</button>
+      <button class="fbtn" data-layer="APPROACH" onclick="setFilter('APPROACH',this)">🧭 APPROACH</button>
+      <button class="fbtn" data-layer="HARBOUR" onclick="setFilter('HARBOUR',this)">🏗 HARBOUR</button>
+      <button class="fbtn" data-layer="BERTHING" onclick="setFilter('BERTHING',this)">⚓ BERTHING</button>
+    </div>
   </div>
 
   <!-- MAIN -->
   <div id="main">
-
-    <!-- MAP MODE -->
-    <div id="mapWrap">
-      <div id="map"></div>
-    </div>
-
-    <!-- TEXT MODE -->
-    <div id="textMode">
-      <div class="tsearch">
-        <input type="search" id="textSearch" placeholder="🔍  Cari nomor peta atau nama..." oninput="renderTextList()">
+    <div id="mapWrap"><div id="map"></div></div>
+    <div id="txm">
+      <div class="ts">
+        <input type="search" id="txSearch" placeholder="🔍  Cari nomor atau nama peta..." oninput="renderText()">
       </div>
-      <div id="textList"></div>
+      <div id="txList"></div>
     </div>
-
   </div>
 
   <!-- BOTTOM SHEET -->
   <div id="sheet">
-    <div id="sheetHandle" onclick="toggleSheet()">
-      <span class="sht-title">ROUTE CHAIN</span>
-      <div class="sht-right">
-        <span class="sht-count" id="chainCount">0 peta</span>
-        <span class="sht-arrow">▲</span>
+    <div id="shhd" onclick="toggleSheet()">
+      <span class="sht">ROUTE CHAIN</span>
+      <div class="shr">
+        <span class="shc" id="chainCnt">0 peta</span>
+        <span class="sha">▲</span>
       </div>
     </div>
-    <div id="sheetTabs">
+    <div id="shtabs">
       <div class="stab on" onclick="showTab('chain',this)">CHAIN</div>
-      <div class="stab" onclick="showTab('export',this)">EXPORT</div>
+      <div class="stab" onclick="showTab('exp',this)">EXPORT</div>
     </div>
-    <div id="sheetBody">
+    <div id="shbd">
       <div id="chainTab">
-        <div class="empty" id="chainEmpty">Belum ada peta dipilih.<br>Tap kotak di map atau tap kartu di Text Mode.</div>
+        <div class="empty" id="chainEmpty">Belum ada peta dipilih.<br>Tap kotak di map atau kartu di Text Mode.</div>
         <div id="chainList"></div>
       </div>
-      <div id="exportTab" style="display:none">
-        <div id="expWrap">
+      <div id="expTab" style="display:none">
+        <div id="expw">
           <textarea id="exportText" readonly placeholder="Chain akan tampil di sini..."></textarea>
           <div class="expbtns">
-            <button class="expbtn eprimary" onclick="copyExport()">COPY TEKS</button>
-            <button class="expbtn esecondary" onclick="clearChain()">CLEAR</button>
+            <button class="expbtn ep" onclick="copyExport()">COPY TEKS</button>
+            <button class="expbtn es" onclick="clearChain()">CLEAR</button>
           </div>
         </div>
       </div>
@@ -295,960 +319,277 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
 
 </div>
 
+<!-- WP PANEL -->
 <div id="wpPanel">
-  <div id="wpHeader">
-    <span class="wptitle">📍 WAYPOINTS</span>
-    <button id="wpClose" onclick="toggleWpPanel()">✕ TUTUP</button>
+  <div class="oph">
+    <span class="opt">📍 WAYPOINTS</span>
+    <button class="opc" onclick="toggleWpPanel()">✕ TUTUP</button>
   </div>
-  <div id="wpBody">
-    <div class="wp-section">Tambah Waypoint</div>
-    <div id="wpAddForm">
-      <div class="wp-row">
-        <input class="wp-inp" id="wpName" placeholder="Nama (mis: SANGATTA)">
+  <div class="opb">
+
+    <!-- GPX Banner -->
+    <div class="gpx-banner" id="gpxBanner">
+      <div class="gpx-banner-head">
+        <span class="gpx-banner-icon">📡</span>
+        <span class="gpx-banner-title">GPX DATA TERSEDIA</span>
       </div>
-      <div class="wp-row">
-        <input class="wp-inp" id="wpLat" placeholder="00° 58.800' N">
-        <input class="wp-inp" id="wpLon" placeholder="117° 34.800' E">
-      </div>
-      <div class="wp-addrow">
-        <button class="wp-addbtn" onclick="addWpManual()">+ TAMBAH</button>
-        <button class="wp-pastebtn" onclick="togglePaste()">PASTE</button>
-      </div>
-      <div id="wpPasteArea">
-        <textarea id="wpPasteText" placeholder="SANGATTA    00° 58.800' N    117° 34.800' E&#10;SAMARINDA   00° 30.000' S    117° 09.000' E"></textarea>
-        <button class="wp-parsebtn" onclick="parsePaste()">PARSE & TAMBAH</button>
-        <div id="wpParseErr"></div>
+      <div class="gpx-banner-txt" id="gpxBannerTxt">Ditemukan route GPX di NavHub storage.</div>
+      <div class="gpx-actions">
+        <button class="gpx-btn primary" onclick="loadGPXFromStorage()">⬇ LOAD GPX</button>
+        <button class="gpx-btn" id="routeToggleBtn" onclick="toggleRouteVisibility()">👁 SHOW ROUTE</button>
       </div>
     </div>
-    <div class="wp-section" id="wpListTitle" style="display:none">Daftar Waypoint</div>
+
+    <div class="ops">Tambah Waypoint Manual</div>
+    <div class="opf">
+      <div class="opr"><input class="opi" id="wpNm" placeholder="Nama (mis: SANGATTA)"></div>
+      <div class="opr">
+        <input class="opi" id="wpLt" placeholder="00° 58.800' N">
+        <input class="opi" id="wpLn" placeholder="117° 34.800' E">
+      </div>
+      <div class="opar">
+        <button class="opab" onclick="addWpManual()">+ TAMBAH</button>
+        <button class="oppb" onclick="togPaste()">PASTE</button>
+      </div>
+      <div id="wpa">
+        <textarea id="wpaText" placeholder="SANGATTA    00° 58.800' N    117° 34.800' E&#10;SAMARINDA   00° 30.000' S    117° 09.000' E"></textarea>
+        <button class="opprs" onclick="parsePaste()">PARSE & TAMBAH</button>
+        <div id="wpErr"></div>
+      </div>
+    </div>
+
+    <div class="ops" id="wpLtl" style="display:none">Daftar Waypoint</div>
     <div id="wpList"></div>
-    <button id="wpDrawBtn" onclick="drawRoute();toggleWpPanel();">🗺 TAMPILKAN DI MAP</button>
-    <button id="wpClearBtn" onclick="clearWaypoints()">HAPUS SEMUA</button>
+    <button id="wpDb" onclick="drawRoute();toggleWpPanel()">🗺 TAMPILKAN DI MAP</button>
+    <!-- Save & Download actions -->
+    <div id="wpSaveBtn" style="display:none;gap:6px;margin-top:6px;">
+      <button onclick="saveGPXtoNavHub()" style="flex:1;padding:10px;background:var(--adim);border:1px solid var(--accent);border-radius:7px;color:var(--accent);font-family:var(--fhud);font-size:14px;letter-spacing:1.5px;cursor:pointer;">💾 SAVE TO NAVHUB</button>
+      <button onclick="downloadGPX()" style="flex:1;padding:10px;background:transparent;border:1px solid var(--border2);border-radius:7px;color:var(--muted2);font-family:var(--fhud);font-size:14px;letter-spacing:1.5px;cursor:pointer;">⬇ DOWNLOAD GPX</button>
+    </div>
+    <button id="wpCb" onclick="clearWaypoints()">HAPUS SEMUA</button>
   </div>
 </div>
 
-<div id="loadOver">
-  <div class="spin"></div>
-  <div id="loadTxt">Memuat...</div>
-</div>
+<div id="ldo"><div class="spin"></div><div id="ldtxt">Memuat...</div></div>
+<div id="toast"><div class="ti" id="ti"></div></div>
 
+<script src="../navhub-db.js"></script>
 <script>
-// ===== STATE =====
-const LAYER_COLORS = {
-  GENERAL:  { stroke:'#4a9eff', fill:'rgba(74,158,255,0.12)' },
-  OVERVIEW: { stroke:'#00d4aa', fill:'rgba(0,212,170,0.12)' },
-  COASTAL:  { stroke:'#ff8c42', fill:'rgba(255,140,66,0.12)' },
-  APPROACH: { stroke:'#a78bfa', fill:'rgba(167,139,250,0.12)' },
-  HARBOUR:  { stroke:'#ffd700', fill:'rgba(255,215,0,0.12)' },
-  BERTHING: { stroke:'#ff6b6b', fill:'rgba(255,107,107,0.12)' },
+/* ─── LAYER COLORS ─── */
+const LC={GENERAL:{s:'#4a9eff'},OVERVIEW:{s:'#00d4aa'},COASTAL:{s:'#ff8c42'},APPROACH:{s:'#a78bfa'},HARBOUR:{s:'#ffd700'},BERTHING:{s:'#ff6b6b'}};
+
+/* ─── STATE ─── */
+let charts=[],chain=[],waypoints=[];
+let activeFilters=new Set(['ALL']);
+let mapMode=true,sheetCol=true,activeTab='chain';
+let chainMode=false,intersectVisible=null;
+let routeLayer=null,wpMarkers=[];
+let routeVisible=false;
+let fbToggleState=false,toastT;
+
+/* ─── MAP ─── */
+const map=L.map('map',{center:[-2,118],zoom:5,zoomControl:false,attributionControl:false});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,opacity:.55}).addTo(map);
+L.control.zoom({position:'topright'}).addTo(map);
+const fitCtrl=L.control({position:'topright'});
+fitCtrl.onAdd=function(){
+  const b=L.DomUtil.create('button','');b.innerHTML='⊡';b.title='Fit peta';
+  b.style.cssText='width:30px;height:30px;background:var(--ps);color:var(--accent);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;margin-top:4px;';
+  L.DomEvent.on(b,'click',L.DomEvent.stopPropagation);L.DomEvent.on(b,'click',fitVisible);return b;
 };
-const CHAIN_STYLE = { color:'#ffd700', fillColor:'rgba(255,215,0,0.22)', fillOpacity:1, weight:2.5 };
+fitCtrl.addTo(map);
 
-let charts = [];
-let chain = [];
-let activeFilters = new Set(['ALL']); // multi-select
-let mapMode = true;
-let sheetCollapsed = true;
-let activeTab = 'chain';
-let rects = [];
-let chainMode = false;       // minesweeper mode
-let intersectVisible = null; // Set of UIDs visible in chainMode
-
-// ===== WAYPOINTS =====
-let waypoints = [];
-let routeLayer = null;
-let wpMarkers = [];
-
-function parseDDM(s) {
-  s = s.trim().toUpperCase();
-  var re = /(\d+)\s*[°d]\s*(\d+\.?\d*)\s*['\`m]?\s*([NSEW])/;
-  var m = s.match(re);
-  if (!m) return null;
-  var dd = parseInt(m[1]) + parseFloat(m[2]) / 60;
-  if (m[3] === 'S' || m[3] === 'W') dd = -dd;
-  return dd;
-}
-
-function ddToDDM(dd, dirs) {
-  var dir = dd >= 0 ? dirs[0] : dirs[1];
-  var abs = Math.abs(dd);
-  var deg = Math.floor(abs);
-  var min = ((abs - deg) * 60).toFixed(3);
-  return ('0'+deg).slice(-2) + '\u00b0 ' + ('0'+min).slice(-6) + '\' ' + dir;
-}
-
-function addWpManual() {
-  var name = document.getElementById('wpName').value.trim() || ('WP'+(waypoints.length+1));
-  var lat = parseDDM(document.getElementById('wpLat').value);
-  var lon = parseDDM(document.getElementById('wpLon').value);
-  if (lat === null || lon === null) { alert("Format tidak valid.\nContoh: 00\u00b0 58.800' N"); return; }
-  waypoints.push({name:name, lat:lat, lon:lon});
-  document.getElementById('wpName').value = '';
-  document.getElementById('wpLat').value = '';
-  document.getElementById('wpLon').value = '';
-  renderWpList();
-}
-
-function togglePaste() {
-  var a = document.getElementById('wpPasteArea');
-  a.style.display = a.style.display === 'none' ? 'block' : 'none';
-}
-
-function parsePaste() {
-  var txt = document.getElementById('wpPasteText').value;
-  var errEl = document.getElementById('wpParseErr');
-  var rows = txt.split('\n');
-  var errors = [];
-  rows.forEach(function(line, idx) {
-    line = line.trim();
-    if (!line) return;
-    var parts = line.split(/\s{2,}|\t/).map(function(t){return t.trim();}).filter(function(t){return t;});
-    var wname, lstr, lostr;
-    if (parts.length >= 3) { wname=parts[0]; lstr=parts[1]; lostr=parts[2]; }
-    else if (parts.length === 2) { wname='WP'+(waypoints.length+1); lstr=parts[0]; lostr=parts[1]; }
-    else { errors.push('Baris '+(idx+1)+': format tidak dikenali'); return; }
-    var lt = parseDDM(lstr);
-    var lo = parseDDM(lostr);
-    if (lt===null||lo===null) { errors.push('Baris '+(idx+1)+': koordinat tidak valid'); return; }
-    waypoints.push({name:wname, lat:lt, lon:lo});
-  });
-  if (errors.length) { errEl.style.display='block'; errEl.textContent=errors.join(' | '); }
-  else { errEl.style.display='none'; document.getElementById('wpPasteText').value=''; document.getElementById('wpPasteArea').style.display='none'; }
-  renderWpList();
-}
-
-function removeWp(i) { waypoints.splice(i,1); renderWpList(); }
-
-function renderWpList() {
-  var list = document.getElementById('wpList');
-  var title = document.getElementById('wpListTitle');
-  var drawBtn = document.getElementById('wpDrawBtn');
-  var clearBtn = document.getElementById('wpClearBtn');
-  if (!waypoints.length) {
-    list.innerHTML=''; title.style.display='none'; drawBtn.style.display='none'; clearBtn.style.display='none'; return;
-  }
-  title.style.display='block'; drawBtn.style.display='block'; clearBtn.style.display='block';
-  list.innerHTML = waypoints.map(function(wp,i){
-    return '<div class="wp-item">'
-      +'<div class="wp-num">'+(i+1)+'</div>'
-      +'<div class="wp-info"><div class="wp-name">'+wp.name+'</div>'
-      +'<div class="wp-coord">'+ddToDDM(wp.lat,'NS')+'  '+ddToDDM(wp.lon,'EW')+'</div></div>'
-      +'<button class="wp-del" onclick="removeWp('+i+')">✕</button>'
-      +'</div>';
-  }).join('');
-}
-
-function drawRoute() {
-  if (routeLayer) { map.removeLayer(routeLayer); routeLayer=null; }
-  wpMarkers.forEach(function(m){map.removeLayer(m);}); wpMarkers=[];
-  if (!waypoints.length) return;
-  var lls = waypoints.map(function(wp){return [wp.lat,wp.lon];});
-  routeLayer = L.polyline(lls,{color:'#00d4aa',weight:2.5,dashArray:'8,4',opacity:0.9}).addTo(map);
-  waypoints.forEach(function(wp,i){
-    var mk = L.marker([wp.lat,wp.lon],{
-      icon: L.divIcon({
-        className:'',
-        html:'<div style="pointer-events:none;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center">'
-          +'<div style="background:rgba(10,22,40,0.88);border:1px solid #00d4aa;color:#00d4aa;font-family:JetBrains Mono,monospace;font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;white-space:nowrap;margin-bottom:2px">'+(i+1)+'. '+wp.name+'</div>'
-          +'<div style="width:6px;height:6px;background:#00d4aa;border-radius:50%"></div>'
-          +'</div>',
-        iconSize:[0,0],iconAnchor:[0,0]
-      }),
-      interactive:false
-    });
-    mk.addTo(map); wpMarkers.push(mk);
-  });
-  map.fitBounds(routeLayer.getBounds(),{padding:[30,30]});
-}
-
-function clearWaypoints() {
-  waypoints=[];
-  if (routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
-  wpMarkers.forEach(function(m){map.removeLayer(m);}); wpMarkers=[];
-  renderWpList();
-}
-
-function toggleWpPanel() {
-  document.getElementById('wpPanel').classList.toggle('show');
-}
-
-// ===== WAYPOINTS =====
-
-function parseDDM(s) {
-  s = s.trim().toUpperCase();
-  var m = s.match(/(\d+)[°\s]+(\d+\.?\d*)['´\s]*([NSEW])/);
-  if (!m) return null;
-  var dd = parseInt(m[1]) + parseFloat(m[2]) / 60;
-  if (m[3] === 'S' || m[3] === 'W') dd = -dd;
-  return dd;
-}
-
-function ddToDDM(dd, dirs) {
-  var dir = dd >= 0 ? dirs[0] : dirs[1];
-  var abs = Math.abs(dd);
-  var deg = Math.floor(abs);
-  var mins = ((abs - deg) * 60).toFixed(3);
-  return (deg < 10 ? '0' : '') + deg + '\u00b0 ' + mins + "' " + dir;
-}
-
-function addWpManual() {
-  var name = document.getElementById('wpName').value.trim() || ('WP' + (waypoints.length + 1));
-  var lat = parseDDM(document.getElementById('wpLat').value);
-  var lon = parseDDM(document.getElementById('wpLon').value);
-  if (lat === null || lon === null) {
-    alert('Format tidak valid.\nContoh lat: 00\u00b0 58.800\' N\nContoh lon: 117\u00b0 34.800\' E');
-    return;
-  }
-  waypoints.push({ name: name, lat: lat, lon: lon });
-  document.getElementById('wpName').value = '';
-  document.getElementById('wpLat').value = '';
-  document.getElementById('wpLon').value = '';
-  renderWpList();
-}
-
-function togglePaste() {
-  var el = document.getElementById('wpPasteArea');
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
-}
-
-function parsePaste() {
-  var txt = document.getElementById('wpPasteText').value;
-  var errEl = document.getElementById('wpParseErr');
-  var rows = txt.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; });
-  var errors = [];
-
-  rows.forEach(function(line, idx) {
-    var cols = line.split(/\s{2,}|\t/).map(function(t) { return t.trim(); }).filter(function(t) { return t; });
-    var name, latStr, lonStr;
-    if (cols.length >= 3) {
-      name = cols[0]; latStr = cols[1]; lonStr = cols[2];
-    } else if (cols.length === 2) {
-      name = 'WP' + (waypoints.length + 1);
-      latStr = cols[0]; lonStr = cols[1];
-    } else {
-      errors.push('Baris ' + (idx + 1) + ': format tidak dikenali');
-      return;
-    }
-    var lat = parseDDM(latStr);
-    var lon = parseDDM(lonStr);
-    if (lat === null || lon === null) {
-      errors.push('Baris ' + (idx + 1) + ': koordinat tidak valid');
-      return;
-    }
-    waypoints.push({ name: name, lat: lat, lon: lon });
-  });
-
-  if (errors.length) {
-    errEl.style.display = 'block';
-    errEl.textContent = errors.join(' | ');
-  } else {
-    errEl.style.display = 'none';
-    document.getElementById('wpPasteText').value = '';
-    document.getElementById('wpPasteArea').style.display = 'none';
-  }
-  renderWpList();
-}
-
-function renderWpList() {
-  var list = document.getElementById('wpList');
-  var title = document.getElementById('wpListTitle');
-  var drawBtn = document.getElementById('wpDrawBtn');
-  var clearBtn = document.getElementById('wpClearBtn');
-  if (!list) return;
-  document.getElementById('chainCount');
-  if (waypoints.length === 0) {
-    list.innerHTML = '';
-    title.style.display = 'none';
-    drawBtn.style.display = 'none';
-    clearBtn.style.display = 'none';
-    return;
-  }
-  title.style.display = 'block';
-  drawBtn.style.display = 'block';
-  clearBtn.style.display = 'block';
-  list.innerHTML = waypoints.map(function(wp, i) {
-    return '<div class="wp-item">' +
-      '<div class="wp-num">' + (i + 1) + '</div>' +
-      '<div class="wp-info">' +
-        '<div class="wp-name">' + wp.name + '</div>' +
-        '<div class="wp-coord">' + ddToDDM(wp.lat, 'NS') + '  ' + ddToDDM(wp.lon, 'EW') + '</div>' +
-      '</div>' +
-      '<button class="wp-del" onclick="removeWp(' + i + ')">&#x2715;</button>' +
-    '</div>';
-  }).join('');
-}
-
-function removeWp(i) {
-  waypoints.splice(i, 1);
-  renderWpList();
-}
-
-function drawRoute() {
-  if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
-  wpMarkers.forEach(function(m) { map.removeLayer(m); });
-  wpMarkers = [];
-  if (waypoints.length === 0) return;
-
-  var latlngs = waypoints.map(function(wp) { return [wp.lat, wp.lon]; });
-  routeLayer = L.polyline(latlngs, { color: '#00d4aa', weight: 2.5, dashArray: '8,4', opacity: 0.9 }).addTo(map);
-
-  waypoints.forEach(function(wp, i) {
-    var marker = L.marker([wp.lat, wp.lon], {
-      icon: L.divIcon({
-        className: '',
-        html: '<div style="transform:translate(-50%,-100%);pointer-events:none;display:flex;flex-direction:column;align-items:center">' +
-          '<div style="background:rgba(10,22,40,0.88);border:1px solid #00d4aa;color:#00d4aa;font-family:monospace;font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;white-space:nowrap;margin-bottom:2px">' +
-          (i + 1) + '. ' + wp.name + '</div>' +
-          '<div style="width:6px;height:6px;background:#00d4aa;border-radius:50%"></div></div>',
-        iconSize: [0, 0], iconAnchor: [0, 0]
-      }),
-      interactive: false
-    });
-    marker.addTo(map);
-    wpMarkers.push(marker);
-  });
-
-  map.fitBounds(routeLayer.getBounds(), { padding: [30, 30] });
-}
-
-function clearWaypoints() {
-  waypoints = [];
-  if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
-  wpMarkers.forEach(function(m) { map.removeLayer(m); });
-  wpMarkers = [];
-  renderWpList();
-}
-
-function toggleWpPanel() {
-  document.getElementById('wpPanel').classList.toggle('show');
-}
-
-// ===== WAYPOINTS =====
-
-function parseDDM(str) {
-  str = str.trim().toUpperCase();
-  // Match: 119° 30.980' E  atau  04° 15.234' S
-  var re = /(\d+)\s*[°d]\s*(\d+\.?\d*)\s*['''`]?\s*([NSEW])/;
-  var m = str.match(re);
-  if (!m) return null;
-  var deg = parseInt(m[1]);
-  var mn  = parseFloat(m[2]);
-  var dir = m[3];
-  var dd  = deg + mn / 60;
-  if (dir === 'S' || dir === 'W') dd = -dd;
-  return dd;
-}
-
-function ddToDDM(dd, dirs) {
-  var dir = dd >= 0 ? dirs[0] : dirs[1];
-  var abs = Math.abs(dd);
-  var d   = Math.floor(abs);
-  var mn  = ((abs - d) * 60).toFixed(3);
-  return (d < 10 ? '0' : '') + d + '\u00b0 ' + mn + '\' ' + dir;
-}
-
-function addWpManual() {
-  var name   = document.getElementById('wpName').value.trim() || ('WP' + (waypoints.length + 1));
-  var latStr = document.getElementById('wpLat').value.trim();
-  var lonStr = document.getElementById('wpLon').value.trim();
-  var lat = parseDDM(latStr);
-  var lon = parseDDM(lonStr);
-  if (lat === null || lon === null) {
-    alert("Format tidak valid.\nContoh lat: 00\u00b0 58.800' N\nContoh lon: 117\u00b0 34.800' E");
-    return;
-  }
-  waypoints.push({ name: name, lat: lat, lon: lon });
-  document.getElementById('wpName').value = '';
-  document.getElementById('wpLat').value  = '';
-  document.getElementById('wpLon').value  = '';
-  renderWpList();
-}
-
-function togglePaste() {
-  var area = document.getElementById('wpPasteArea');
-  area.style.display = area.style.display === 'none' ? 'block' : 'none';
-}
-
-function parsePaste() {
-  var txt   = document.getElementById('wpPasteText').value;
-  var errEl = document.getElementById('wpParseErr');
-  var rows  = txt.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l; });
-  var added = 0;
-  var errors = [];
-
-  rows.forEach(function(line, idx) {
-    // Split by 2+ spaces or tab
-    var parts = line.split(/  +|\t/).map(function(t){ return t.trim(); }).filter(function(t){ return t; });
-    var name, latStr, lonStr;
-    if (parts.length >= 3) {
-      name = parts[0]; latStr = parts[1]; lonStr = parts[2];
-    } else if (parts.length === 2) {
-      name   = 'WP' + (waypoints.length + added + 1);
-      latStr = parts[0]; lonStr = parts[1];
-    } else {
-      errors.push('Baris ' + (idx+1) + ': tidak dikenali');
-      return;
-    }
-    var lat = parseDDM(latStr);
-    var lon = parseDDM(lonStr);
-    if (lat === null || lon === null) {
-      errors.push('Baris ' + (idx+1) + ': koordinat tidak valid');
-      return;
-    }
-    waypoints.push({ name: name, lat: lat, lon: lon });
-    added++;
-  });
-
-  if (errors.length) {
-    errEl.style.display = 'block';
-    errEl.textContent   = errors.join(' | ');
-  } else {
-    errEl.style.display = 'none';
-    document.getElementById('wpPasteText').value = '';
-    document.getElementById('wpPasteArea').style.display = 'none';
-  }
-  renderWpList();
-}
-
-function renderWpList() {
-  var list     = document.getElementById('wpList');
-  var title    = document.getElementById('wpListTitle');
-  var drawBtn  = document.getElementById('wpDrawBtn');
-  var clearBtn = document.getElementById('wpClearBtn');
-  if (waypoints.length === 0) {
-    list.innerHTML = ''; title.style.display = 'none';
-    drawBtn.style.display = 'none'; clearBtn.style.display = 'none';
-    return;
-  }
-  title.style.display = 'block';
-  drawBtn.style.display = 'block'; clearBtn.style.display = 'block';
-  list.innerHTML = waypoints.map(function(wp, i) {
-    return '<div class="wp-item">' +
-      '<div class="wp-num">' + (i+1) + '</div>' +
-      '<div class="wp-info">' +
-        '<div class="wp-name">' + wp.name + '</div>' +
-        '<div class="wp-coord">' + ddToDDM(wp.lat,'NS') + '&nbsp;&nbsp;' + ddToDDM(wp.lon,'EW') + '</div>' +
-      '</div>' +
-      '<button class="wp-del" onclick="removeWp(' + i + ')">&#x2715;</button>' +
-    '</div>';
-  }).join('');
-}
-
-function removeWp(i) {
-  waypoints.splice(i, 1);
-  renderWpList();
-}
-
-function drawRoute() {
-  if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
-  wpMarkers.forEach(function(m) { map.removeLayer(m); });
-  wpMarkers = [];
-  if (waypoints.length === 0) return;
-
-  var latlngs = waypoints.map(function(wp) { return [wp.lat, wp.lon]; });
-  routeLayer = L.polyline(latlngs, {
-    color: '#00d4aa', weight: 2.5, dashArray: '8,4', opacity: 0.9
-  }).addTo(map);
-
-  waypoints.forEach(function(wp, i) {
-    var marker = L.marker([wp.lat, wp.lon], {
-      icon: L.divIcon({
-        className: '',
-        html: '<div style="pointer-events:none;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center">' +
-          '<div style="background:rgba(10,22,40,0.88);border:1px solid #00d4aa;color:#00d4aa;' +
-          'font-family:monospace;font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;white-space:nowrap;margin-bottom:2px">' +
-          (i+1) + '. ' + wp.name + '</div>' +
-          '<div style="width:6px;height:6px;background:#00d4aa;border-radius:50%"></div>' +
-        '</div>',
-        iconSize: [0,0], iconAnchor: [0,0]
-      }),
-      interactive: false
-    });
-    marker.addTo(map);
-    wpMarkers.push(marker);
-  });
-
-  map.fitBounds(routeLayer.getBounds(), { padding: [30,30] });
-}
-
-function clearWaypoints() {
-  waypoints = [];
-  if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
-  wpMarkers.forEach(function(m) { map.removeLayer(m); });
-  wpMarkers = [];
-  renderWpList();
-}
-
-function toggleWpPanel() {
-  document.getElementById('wpPanel').classList.toggle('show');
-}
-
-
-// ===== MAP =====
-const map = L.map('map', {
-  center:[-2,118], zoom:5,
-  zoomControl:false, attributionControl:false,
+window.addEventListener('message',e=>{
+  if(e.data&&(e.data.type==='night'||e.data.type==='navhub-night'))
+    document.body.classList.toggle('night',e.data.value??e.data.night);
 });
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:18, opacity:0.55 }).addTo(map);
-L.control.zoom({ position:'topright' }).addTo(map);
 
-// Fit button
-const fitBtn = L.control({ position:'topright' });
-fitBtn.onAdd = function() {
-  const btn = L.DomUtil.create('button','leaflet-bar leaflet-control fit-btn');
-  btn.innerHTML = '⊡';
-  btn.title = 'Fit semua peta';
-  btn.style.cssText = 'width:30px;height:30px;background:var(--panel);color:var(--accent);border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:4px;margin-top:4px;';
-  L.DomEvent.on(btn,'click', L.DomEvent.stopPropagation);
-  L.DomEvent.on(btn,'click', fitVisible);
-  return btn;
-};
-fitBtn.addTo(map);
+/* ─── TOAST ─── */
+function toast(m){const i=document.getElementById('ti');i.textContent=m;i.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>i.classList.remove('show'),2500);}
 
-// ===== LOAD FILE =====
-function loadFile(e) {
-  const file = e.target.files[0]; if(!file) return;
-  showLoad('Membaca file...');
-  const r = new FileReader();
-  r.onload = ev => {
-    try { parseData(JSON.parse(ev.target.result)); }
-    catch(err) { hideLoad(); alert('Gagal: '+err.message); }
-  };
-  r.readAsText(file);
-  e.target.value = '';
+/* ─── FILTER BAR TOGGLE ─── */
+function toggleFB(){fbToggleState=!fbToggleState;document.getElementById('fbWrap').classList.toggle('col',fbToggleState);document.getElementById('fbt-arrow').style.transform=fbToggleState?'rotate(180deg)':'rotate(0)';setTimeout(()=>map.invalidateSize(),310);}
+
+/* ─── LOAD FILE MANUAL ─── */
+function loadFile(e){const f=e.target.files[0];if(!f)return;showLd('Membaca file...');const r=new FileReader();r.onload=ev=>{try{parseData(JSON.parse(ev.target.result));}catch(err){hideLd();toast('GAGAL: '+err.message);}};r.readAsText(f);e.target.value='';}
+
+/* ─── AUTO-LOAD CHART DATA FROM INDEXEDDB ─── */
+async function autoLoadChartData(){
+  const rec=await NavHubDB.getChartData();
+  if(!rec){setTimeout(()=>toast('TIP: UPLOAD JSON DI NAVHUB → SIDEBAR'),1000);return false;}
+  showLd('Auto-loading chart data...');
+  try{parseData(JSON.parse(rec.raw));return true;}
+  catch(e){hideLd();toast('DB DATA ERROR');return false;}
 }
 
-function parseData(json) {
-  showLoad('Memproses geometri...');
-  const layers = json.layers || json;
-  charts = [];
-
-  for (const [layerName, records] of Object.entries(layers)) {
-    for (const rec of records) {
-      const attr = rec.attributes || rec;
-      const geo = rec.geometry;
-      if (!geo?.paths?.[0]) continue;
-      const pts = geo.paths[0];
-      const lons = pts.map(p=>p[0]), lats = pts.map(p=>p[1]);
-      charts.push({
-        uid: layerName+'_'+attr.OBJECTID,
-        layer: layerName.toUpperCase(),
-        attr,
-        bbox: {
-          minLon:Math.min(...lons), maxLon:Math.max(...lons),
-          minLat:Math.min(...lats), maxLat:Math.max(...lats),
-        },
-        rect: null,
-      });
+/* ─── PARSE DATA ─── */
+function parseData(json){
+  showLd('Memproses geometri...');const layers=json.layers||json;charts=[];
+  for(const[ln,recs]of Object.entries(layers)){
+    for(const rec of recs){
+      const a=rec.attributes||rec,g=rec.geometry;if(!g?.paths?.[0])continue;
+      const pts=g.paths[0],lons=pts.map(p=>p[0]),lats=pts.map(p=>p[1]);
+      charts.push({uid:ln+'_'+a.OBJECTID,layer:ln.toUpperCase(),attr:a,
+        bbox:{minLon:Math.min(...lons),maxLon:Math.max(...lons),minLat:Math.min(...lats),maxLat:Math.max(...lats)},rect:null});
     }
   }
-
-  setTimeout(() => {
-    renderMap();
-    renderTextList();
-    hideLoad();
-    if (charts.length) fitVisible();
-  }, 30);
+  setTimeout(()=>{renderMap();renderText();hideLd();if(charts.length)fitVisible();},30);
 }
 
-// ===== MAP RENDER =====
-function isVisible(c) {
-  const layerOk = activeFilters.has('ALL') || activeFilters.has(c.layer);
-  if (!layerOk) return false;
-  if (intersectVisible !== null) return intersectVisible.has(c.uid);
-  return true;
-}
-
-function renderMap() {
-  rects.forEach(r => map.removeLayer(r));
-  rects = [];
-
-  // Sort: skala besar (angka besar = overview) render duluan,
-  // peta detail (angka kecil) render belakangan = tampil di atas
-  const sorted = charts
-    .filter(isVisible)
-    .sort((a, b) => Number(b.attr.SCALE||0) - Number(a.attr.SCALE||0));
-
-  sorted.forEach(c => {
-    const inChain = chain.includes(c.uid);
-    const col = LAYER_COLORS[c.layer] || { stroke:'#fff', fill:'rgba(255,255,255,0.1)' };
-
-    const rect = L.rectangle(
-      [[c.bbox.minLat, c.bbox.minLon],[c.bbox.maxLat, c.bbox.maxLon]],
-      inChain ? {
-        color: '#ffd700', weight: 2.5, dashArray: null,
-        fillColor: '#ffd700', fillOpacity: 0.18,
-      } : {
-        color: col.stroke, weight: 1.5, dashArray: '5,4',
-        fillColor: col.stroke, fillOpacity: 0.08,
-      }
-    );
-
-    rect.bindTooltip(
-      `<b>${c.attr.CHART_ID}</b> · ${c.layer}<br>${(c.attr.TITLE||'').substring(0,36)}<br><span style="color:#4a9eff">1:${Number(c.attr.SCALE||0).toLocaleString('id')}</span>`,
-      { sticky:true }
-    );
-
-    rect.on('click', () => toggleChain(c.uid));
-    rect.addTo(map);
-    c.rect = rect;
-    rects.push(rect);
+/* ─── MAP RENDER ─── */
+function isVis(c){const ok=activeFilters.has('ALL')||activeFilters.has(c.layer);if(!ok)return false;if(intersectVisible!==null)return intersectVisible.has(c.uid);return true;}
+function renderMap(){
+  charts.forEach(c=>{if(c.rect){map.removeLayer(c.rect);c.rect=null;}});
+  const sorted=charts.filter(isVis).sort((a,b)=>Number(b.attr.SCALE||0)-Number(a.attr.SCALE||0));
+  sorted.forEach(c=>{
+    const ic=chain.includes(c.uid),col=LC[c.layer]||{s:'#fff'};
+    const r=L.rectangle([[c.bbox.minLat,c.bbox.minLon],[c.bbox.maxLat,c.bbox.maxLon]],
+      ic?{color:'#ffd700',weight:2.5,dashArray:null,fillColor:'#ffd700',fillOpacity:.18}:{color:col.s,weight:1.5,dashArray:'5,4',fillColor:col.s,fillOpacity:.08});
+    r.bindTooltip(`<b>${c.attr.CHART_ID}</b> · ${c.layer}<br>${(c.attr.TITLE||'').substring(0,36)}<br><span style="color:#4a9eff">1:${Number(c.attr.SCALE||0).toLocaleString('id')}</span>`,{sticky:true});
+    r.on('click',()=>toggleChain(c.uid));r.addTo(map);c.rect=r;
   });
-
-  // Chain selalu di atas + label
-  // Hapus label lama
-  if (window._chainLabels) window._chainLabels.forEach(l=>map.removeLayer(l));
-  window._chainLabels = [];
-
-  chain.forEach(uid => {
-    const c = charts.find(ch => ch.uid === uid);
-    if (!c?.rect) return;
-    c.rect.bringToFront();
-    // Tambah label di tengah bbox
-    const clat = (c.bbox.minLat + c.bbox.maxLat) / 2;
-    const clon = (c.bbox.minLon + c.bbox.maxLon) / 2;
-    const label = L.marker([clat, clon], {
-      icon: L.divIcon({
-        className: '',
-        html: `<div style="
-          background:rgba(10,22,40,0.75);
-          border:1px solid #ffd700;
-          color:#ffd700;
-          font-family:'JetBrains Mono',monospace;
-          font-size:10px;
-          font-weight:600;
-          padding:2px 5px;
-          border-radius:3px;
-          white-space:nowrap;
-          pointer-events:none;
-          transform:translate(-50%,-50%);
-        ">${c.attr.CHART_ID}</div>`,
-        iconSize: [0,0],
-        iconAnchor: [0,0],
-      }),
-      interactive: false,
-      zIndexOffset: 1000,
-    });
-    label.addTo(map);
-    window._chainLabels.push(label);
+  if(window._cl)window._cl.forEach(l=>map.removeLayer(l));window._cl=[];
+  chain.forEach(uid=>{
+    const c=charts.find(ch=>ch.uid===uid);if(!c?.rect)return;c.rect.bringToFront();
+    const lt=(c.bbox.minLat+c.bbox.maxLat)/2,ln=(c.bbox.minLon+c.bbox.maxLon)/2;
+    const lb=L.marker([lt,ln],{icon:L.divIcon({className:'',html:`<div style="background:rgba(4,16,28,.8);border:1px solid #ffd700;color:#ffd700;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:2px 5px;border-radius:3px;white-space:nowrap;pointer-events:none;transform:translate(-50%,-50%)">${c.attr.CHART_ID}</div>`,iconSize:[0,0],iconAnchor:[0,0]}),interactive:false,zIndexOffset:1000});
+    lb.addTo(map);window._cl.push(lb);
   });
 }
-
-function fitVisible() {
-  // Kalau ada chain, fit ke chain; kalau tidak fit semua visible
-  const target = chain.length > 0
-    ? charts.filter(c=>chain.includes(c.uid))
-    : (activeFilters.has('ALL') ? charts : charts.filter(c=>activeFilters.has(c.layer)));
-  if (!target.length) return;
-  let minLat=90, maxLat=-90, minLon=180, maxLon=-180;
-  target.forEach(c => {
-    minLat=Math.min(minLat,c.bbox.minLat); maxLat=Math.max(maxLat,c.bbox.maxLat);
-    minLon=Math.min(minLon,c.bbox.minLon); maxLon=Math.max(maxLon,c.bbox.maxLon);
-  });
-  map.fitBounds([[minLat,minLon],[maxLat,maxLon]], {padding:[20,20]});
+function fitVisible(){
+  const t=chain.length>0?charts.filter(c=>chain.includes(c.uid)):(activeFilters.has('ALL')?charts:charts.filter(c=>activeFilters.has(c.layer)));
+  if(!t.length)return;let a=90,b=-90,c=180,d=-180;
+  t.forEach(x=>{a=Math.min(a,x.bbox.minLat);b=Math.max(b,x.bbox.maxLat);c=Math.min(c,x.bbox.minLon);d=Math.max(d,x.bbox.maxLon);});
+  map.fitBounds([[a,c],[b,d]],{padding:[20,20]});
 }
 
-// ===== TEXT LIST =====
-function renderTextList() {
-  const q = (document.getElementById('textSearch').value||'').toLowerCase();
-  const visible = activeFilters.has('ALL') ? charts : charts.filter(c=>activeFilters.has(c.layer));
-  const filtered = q ? visible.filter(c =>
-    (c.attr.CHART_ID||'').toLowerCase().includes(q) ||
-    (c.attr.TITLE||'').toLowerCase().includes(q)
-  ) : visible;
-
-  const container = document.getElementById('textList');
-  if (!filtered.length) {
-    container.innerHTML = '<div class="empty">Tidak ada peta ditemukan.</div>';
-    return;
-  }
-
-  container.innerHTML = filtered.map(c => {
-    const inChain = chain.includes(c.uid);
-    const col = LAYER_COLORS[c.layer]?.stroke || '#fff';
-    return `<div class="tcard ${inChain?'inchain':''}" onclick="toggleChain('${c.uid}')">
-      <div class="tcard-no">${c.attr.CHART_ID||'—'}</div>
-      <div class="tcard-info">
-        <div class="tcard-title">${c.attr.TITLE||''}</div>
-        <div class="tcard-meta">${c.layer} · ${c.attr.EDITION||''}</div>
-      </div>
-      <div class="tcard-scale" style="color:${col}">
-        1:${Number(c.attr.SCALE||0).toLocaleString('id')}<br>
-        <span style="color:var(--muted);font-size:8px">${inChain?'✓ IN CHAIN':''}</span>
-      </div>
-    </div>`;
+/* ─── TEXT LIST ─── */
+function renderText(){
+  const q=(document.getElementById('txSearch').value||'').toLowerCase();
+  const vis=activeFilters.has('ALL')?charts:charts.filter(c=>activeFilters.has(c.layer));
+  const fil=q?vis.filter(c=>(c.attr.CHART_ID||'').toLowerCase().includes(q)||(c.attr.TITLE||'').toLowerCase().includes(q)):vis;
+  const el=document.getElementById('txList');
+  if(!fil.length){el.innerHTML='<div class="empty">Tidak ada peta ditemukan.</div>';return;}
+  el.innerHTML=fil.map(c=>{const ic=chain.includes(c.uid),col=LC[c.layer]?.s||'#fff';
+    return`<div class="tcard ${ic?'inc':''}" onclick="toggleChain('${c.uid}')"><div class="tno">${c.attr.CHART_ID||'—'}</div><div class="tinf"><div class="ttl">${c.attr.TITLE||''}</div><div class="tmt">${c.layer} · ${c.attr.EDITION||''}</div></div><div class="tsc" style="color:${col}">1:${Number(c.attr.SCALE||0).toLocaleString('id')}<br><span style="color:var(--muted);font-size:8px">${ic?'✓ IN CHAIN':''}</span></div></div>`;
   }).join('');
 }
 
-// ===== CHAIN =====
-function bboxIntersects(a, b) {
-  return !(a.maxLon < b.minLon || a.minLon > b.maxLon ||
-           a.maxLat < b.minLat || a.minLat > b.maxLat);
+/* ─── CHAIN ─── */
+function bboxX(a,b){return!(a.maxLon<b.minLon||a.minLon>b.maxLon||a.maxLat<b.minLat||a.minLat>b.maxLat);}
+function toggleChain(uid){if(chainMode){chainAdd(uid);return;}const i=chain.indexOf(uid);if(i===-1)chain.push(uid);else chain.splice(i,1);updateRect(uid);renderChainList();renderText();if(sheetCol&&chain.length>0)toggleSheet();}
+function chainAdd(uid){
+  const i=chain.indexOf(uid);if(i!==-1){const rm=chain.splice(i);rm.forEach(u=>updateRect(u));rebuildIntersect();renderMap();renderChainList();renderText();return;}
+  chain.push(uid);updateRect(uid);const c=charts.find(ch=>ch.uid===uid);
+  if(c){const nv=new Set();charts.forEach(o=>{if(bboxX(c.bbox,o.bbox))nv.add(o.uid);});chain.forEach(u=>nv.add(u));intersectVisible=nv;}
+  renderMap();renderChainList();renderText();if(sheetCol)toggleSheet();
 }
-
-function toggleChain(uid) {
-  if (chainMode) {
-    chainModeAdd(uid);
-    return;
-  }
-  const i = chain.indexOf(uid);
-  if (i === -1) chain.push(uid);
-  else chain.splice(i, 1);
-  updateRectStyle(uid);
-  renderChainList();
-  renderTextList();
-  if (sheetCollapsed && chain.length > 0) toggleSheet();
-}
-
-function chainModeAdd(uid) {
-  // Kalau sudah di chain, undo — pop semua sampai uid ini
-  const i = chain.indexOf(uid);
-  if (i !== -1) {
-    // Remove dari sini ke atas
-    const removed = chain.splice(i);
-    removed.forEach(u => updateRectStyle(u));
-    // Rebuild intersectVisible dari chain yang tersisa
-    rebuildIntersect();
-    renderMap();
-    renderChainList();
-    renderTextList();
-    return;
-  }
-
-  // Tambah ke chain
-  chain.push(uid);
-  updateRectStyle(uid);
-
-  // Hitung intersect dari peta ini
-  const c = charts.find(ch=>ch.uid===uid);
-  if (c) {
-    // Visible = semua yang beririsan dengan c, termasuk yang sudah di chain
-    const newVisible = new Set();
-    charts.forEach(other => {
-      if (bboxIntersects(c.bbox, other.bbox)) newVisible.add(other.uid);
-    });
-    // Selalu tampilkan yang sudah di chain
-    chain.forEach(u => newVisible.add(u));
-    intersectVisible = newVisible;
-  }
-
-  renderMap();
-  renderChainList();
-  renderTextList();
-  if (sheetCollapsed) toggleSheet();
-}
-
-function rebuildIntersect() {
-  if (chain.length === 0) {
-    intersectVisible = null;
-    return;
-  }
-  // Intersect dari peta terakhir di chain
-  const lastUid = chain[chain.length - 1];
-  const c = charts.find(ch=>ch.uid===lastUid);
-  if (!c) { intersectVisible = null; return; }
-  const newVisible = new Set();
-  charts.forEach(other => {
-    if (bboxIntersects(c.bbox, other.bbox)) newVisible.add(other.uid);
-  });
-  chain.forEach(u => newVisible.add(u));
-  intersectVisible = newVisible;
-}
-
-function updateRectStyle(uid) {
-  const c = charts.find(ch=>ch.uid===uid);
-  if (!c?.rect) return;
-  const inChain = chain.includes(uid);
-  const col = LAYER_COLORS[c.layer] || { stroke:'#fff' };
-  if (inChain) {
-    c.rect.setStyle({ color:'#ffd700', weight:2.5, dashArray:null, fillColor:'#ffd700', fillOpacity:0.18 });
-    c.rect.bringToFront();
-  } else {
-    c.rect.setStyle({ color:col.stroke, weight:1.5, dashArray:'5,4', fillColor:col.stroke, fillOpacity:0.08 });
-  }
-}
-
-function toggleChainMode() {
-  chainMode = !chainMode;
-  const btn = document.getElementById('chainModeBtn');
-  btn.classList.toggle('chain-active', chainMode);
-  btn.title = chainMode ? 'Chain Mode ON (tap untuk off)' : 'Chain Mode';
-  if (chainMode && chain.length > 0) {
-    // Langsung rebuild intersect dari peta terakhir di chain
-    rebuildIntersect();
-  } else {
-    // Off atau chain kosong — tampilkan semua
-    intersectVisible = null;
-  }
-  renderMap();
-}
-
-function moveChain(uid, dir) {
-  const i = chain.indexOf(uid); if(i<0) return;
-  const ni = i+dir; if(ni<0||ni>=chain.length) return;
-  [chain[i],chain[ni]] = [chain[ni],chain[i]];
-  renderChainList();
-}
-
-function removeFromChain(uid) {
-  chain = chain.filter(u=>u!==uid);
-  const c = charts.find(ch=>ch.uid===uid);
-  if (c?.rect) {
-    const col = LAYER_COLORS[c.layer] || { stroke:'#fff' };
-    c.rect.setStyle({ color:col.stroke, weight:1.5, dashArray:'5,4', fillColor:col.stroke, fillOpacity:0.08 });
-  }
-  renderChainList();
-  renderTextList();
-}
-
-function clearChain() {
-  chain.forEach(uid => {
-    const c = charts.find(ch=>ch.uid===uid);
-    if (c?.rect) {
-      const col = LAYER_COLORS[c.layer] || { stroke:'#fff' };
-      c.rect.setStyle({ color:col.stroke, weight:1.5, dashArray:'5,4', fillColor:col.stroke, fillOpacity:0.08 });
-    }
-  });
-  chain = [];
-  intersectVisible = null;
-  if (window._chainLabels) { window._chainLabels.forEach(l=>map.removeLayer(l)); window._chainLabels=[]; }
-  renderChainList();
-  renderTextList();
-  renderMap();
-  document.getElementById('exportText').value = '';
-}
-
-function renderChainList() {
-  const list = document.getElementById('chainList');
-  const empty = document.getElementById('chainEmpty');
-  document.getElementById('chainCount').textContent = chain.length + ' peta';
-
-  if (chain.length === 0) {
-    empty.style.display = 'block';
-    list.innerHTML = '';
-    if (activeTab === 'export') document.getElementById('exportText').value = '';
-    return;
-  }
-  empty.style.display = 'none';
-
-  list.innerHTML = chain.map((uid, i) => {
-    const c = charts.find(ch=>ch.uid===uid); if(!c) return '';
-    const a = c.attr;
-    return `<div class="ci">
-      <div class="cnum">${i+1}</div>
-      <div class="cinfo">
-        <div class="cid">${a.CHART_ID}<span class="clayer">${c.layer}</span></div>
-        <div class="ctitle">${a.TITLE||''}</div>
-      </div>
-      <div class="cscale">1:${Number(a.SCALE||0).toLocaleString('id')}</div>
-      <div class="cacts">
-        <button class="cact" onclick="moveChain('${uid}',-1)">↑</button>
-        <button class="cact" onclick="moveChain('${uid}',1)">↓</button>
-        <button class="cact" onclick="removeFromChain('${uid}')">✕</button>
-      </div>
-    </div>`;
+function rebuildIntersect(){if(chain.length===0){intersectVisible=null;return;}const c=charts.find(ch=>ch.uid===chain[chain.length-1]);if(!c){intersectVisible=null;return;}const nv=new Set();charts.forEach(o=>{if(bboxX(c.bbox,o.bbox))nv.add(o.uid);});chain.forEach(u=>nv.add(u));intersectVisible=nv;}
+function updateRect(uid){const c=charts.find(ch=>ch.uid===uid);if(!c?.rect)return;const ic=chain.includes(uid),col=LC[c.layer]||{s:'#fff'};if(ic)c.rect.setStyle({color:'#ffd700',weight:2.5,dashArray:null,fillColor:'#ffd700',fillOpacity:.18});else c.rect.setStyle({color:col.s,weight:1.5,dashArray:'5,4',fillColor:col.s,fillOpacity:.08});}
+function toggleChainMode(){chainMode=!chainMode;document.getElementById('chainModeBtn').classList.toggle('chain-on',chainMode);if(chainMode&&chain.length>0)rebuildIntersect();else intersectVisible=null;renderMap();toast(chainMode?'CHAIN MODE ON':'CHAIN MODE OFF');}
+function moveChain(uid,d){const i=chain.indexOf(uid);if(i<0)return;const ni=i+d;if(ni<0||ni>=chain.length)return;[chain[i],chain[ni]]=[chain[ni],chain[i]];renderChainList();}
+function removeFromChain(uid){chain=chain.filter(u=>u!==uid);const c=charts.find(ch=>ch.uid===uid);if(c?.rect){const col=LC[c.layer]||{s:'#fff'};c.rect.setStyle({color:col.s,weight:1.5,dashArray:'5,4',fillColor:col.s,fillOpacity:.08});}renderChainList();renderText();}
+function clearChain(){chain.forEach(uid=>{const c=charts.find(ch=>ch.uid===uid);if(c?.rect){const col=LC[c.layer]||{s:'#fff'};c.rect.setStyle({color:col.s,weight:1.5,dashArray:'5,4',fillColor:col.s,fillOpacity:.08});}});chain=[];intersectVisible=null;if(window._cl){window._cl.forEach(l=>map.removeLayer(l));window._cl=[];}renderChainList();renderText();renderMap();document.getElementById('exportText').value='';}
+function renderChainList(){
+  const list=document.getElementById('chainList'),empty=document.getElementById('chainEmpty');
+  document.getElementById('chainCnt').textContent=chain.length+' peta';
+  if(chain.length===0){empty.style.display='block';list.innerHTML='';if(activeTab==='exp')document.getElementById('exportText').value='';return;}
+  empty.style.display='none';
+  list.innerHTML=chain.map((uid,i)=>{const c=charts.find(ch=>ch.uid===uid);if(!c)return'';const a=c.attr;
+    return`<div class="ci"><div class="cnum">${i+1}</div><div class="cinf"><div class="cid">${a.CHART_ID}<span class="cly">${c.layer}</span></div><div class="ctl">${a.TITLE||''}</div></div><div class="csc">1:${Number(a.SCALE||0).toLocaleString('id')}</div><div class="cacts"><button class="cact" onclick="moveChain('${uid}',-1)">↑</button><button class="cact" onclick="moveChain('${uid}',1)">↓</button><button class="cact" onclick="removeFromChain('${uid}')">✕</button></div></div>`;
   }).join('');
-
-  if (activeTab === 'export') updateExport();
+  if(activeTab==='exp')updateExport();
 }
 
-// ===== EXPORT =====
-function updateExport() {
-  if (!chain.length) { document.getElementById('exportText').value=''; return; }
-  const lines = [
-    'VOYAGE CHART CHAIN',
-    'Generated: '+new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'}),
-    '━'.repeat(38), '',
-  ];
-  chain.forEach((uid,i) => {
-    const c = charts.find(ch=>ch.uid===uid); if(!c) return;
-    const a = c.attr;
-    lines.push(`${String(i+1).padStart(2,'0')}. [${a.CHART_ID}] ${a.TITLE||''}`);
-    lines.push(`    Scale  : 1:${Number(a.SCALE||0).toLocaleString('id')} | ${c.layer}`);
-    lines.push(`    Edition: ${a.EDITION||'-'}`);
-    lines.push(`    NM s/d : ${a.NM_PRINTED||'-'}`);
-    if (i < chain.length-1) lines.push('    ↓');
+/* ─── EXPORT ─── */
+function updateExport(){
+  if(!chain.length){document.getElementById('exportText').value='';return;}
+  const lines=['VOYAGE CHART CHAIN','Generated: '+new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'}),'━'.repeat(38),''];
+  chain.forEach((uid,i)=>{const c=charts.find(ch=>ch.uid===uid);if(!c)return;const a=c.attr;lines.push(`${String(i+1).padStart(2,'0')}. [${a.CHART_ID}] ${a.TITLE||''}`);lines.push(`    Scale  : 1:${Number(a.SCALE||0).toLocaleString('id')} | ${c.layer}`);lines.push(`    Edition: ${a.EDITION||'-'}`);lines.push(`    NM s/d : ${a.NM_PRINTED||'-'}`);if(i<chain.length-1)lines.push('    ↓');});
+  lines.push('','━'.repeat(38),`Total: ${chain.length} peta`);document.getElementById('exportText').value=lines.join('\n');
+}
+function copyExport(){updateExport();const txt=document.getElementById('exportText').value;if(!txt)return;navigator.clipboard.writeText(txt).then(()=>toast('TERSALIN!')).catch(()=>{document.getElementById('exportText').select();document.execCommand('copy');toast('TERSALIN!');});}
+
+/* ─── UI CONTROLS ─── */
+function toggleMode(){mapMode=!mapMode;const b=document.getElementById('modeBtn');document.getElementById('mapWrap').style.display=mapMode?'flex':'none';document.getElementById('txm').classList.toggle('show',!mapMode);b.textContent=mapMode?'🗺 MAP':'📋 TEXT';b.classList.toggle('on',!mapMode);if(mapMode)setTimeout(()=>map.invalidateSize(),50);else renderText();}
+function setFilter(layer,btn){if(layer==='ALL'){activeFilters=new Set(['ALL']);document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}else{activeFilters.delete('ALL');document.querySelector('.fbtn[data-layer="ALL"]').classList.remove('on');if(activeFilters.has(layer)){activeFilters.delete(layer);btn.classList.remove('on');if(activeFilters.size===0){activeFilters.add('ALL');document.querySelector('.fbtn[data-layer="ALL"]').classList.add('on');}}else{activeFilters.add(layer);btn.classList.add('on');}}renderMap();renderText();}
+function toggleSheet(){sheetCol=!sheetCol;document.getElementById('sheet').classList.toggle('exp',!sheetCol);setTimeout(()=>map.invalidateSize(),310);}
+function showTab(t,el){activeTab=t;document.querySelectorAll('.stab').forEach(x=>x.classList.remove('on'));el.classList.add('on');document.getElementById('chainTab').style.display=t==='chain'?'block':'none';document.getElementById('expTab').style.display=t==='exp'?'block':'none';if(t==='exp')updateExport();}
+function showLd(m){document.getElementById('ldo').classList.add('show');document.getElementById('ldtxt').textContent=m||'Memuat...';}
+function hideLd(){document.getElementById('ldo').classList.remove('show');}
+
+/* ─── WAYPOINTS ─── */
+function parseDDM(s){s=s.trim().toUpperCase();const m=s.match(/(\d+)\s*[°d]\s*(\d+\.?\d*)\s*['''`]?\s*([NSEW])/);if(!m)return null;const dd=parseInt(m[1])+parseFloat(m[2])/60;return(m[3]==='S'||m[3]==='W')?-dd:dd;}
+function ddToDDM(dd,dirs){const dir=dd>=0?dirs[0]:dirs[1],abs=Math.abs(dd),d=Math.floor(abs),mn=((abs-d)*60).toFixed(3);return(d<10?'0':'')+d+'° '+mn+"' "+dir;}
+function addWpManual(){const nm=document.getElementById('wpNm').value.trim()||('WP'+(waypoints.length+1));const lat=parseDDM(document.getElementById('wpLt').value);const lon=parseDDM(document.getElementById('wpLn').value);if(lat===null||lon===null){alert("Format tidak valid.\nContoh: 00° 58.800' N");return;}waypoints.push({name:nm,lat,lon});document.getElementById('wpNm').value='';document.getElementById('wpLt').value='';document.getElementById('wpLn').value='';renderWpList();}
+function togPaste(){const a=document.getElementById('wpa');a.style.display=a.style.display==='none'?'block':'none';}
+function parsePaste(){const txt=document.getElementById('wpaText').value,errEl=document.getElementById('wpErr');const rows=txt.split('\n').map(l=>l.trim()).filter(l=>l);const errs=[];rows.forEach((line,idx)=>{const parts=line.split(/  +|\t/).map(t=>t.trim()).filter(t=>t);let nm,ls,los;if(parts.length>=3){nm=parts[0];ls=parts[1];los=parts[2];}else if(parts.length===2){nm='WP'+(waypoints.length+1);ls=parts[0];los=parts[1];}else{errs.push('Baris '+(idx+1)+': tidak dikenali');return;}const lat=parseDDM(ls),lon=parseDDM(los);if(lat===null||lon===null){errs.push('Baris '+(idx+1)+': koordinat tidak valid');return;}waypoints.push({name:nm,lat,lon});});if(errs.length){errEl.style.display='block';errEl.textContent=errs.join(' | ');}else{errEl.style.display='none';document.getElementById('wpaText').value='';document.getElementById('wpa').style.display='none';}renderWpList();}
+function renderWpList(){
+  const list=document.getElementById('wpList'),title=document.getElementById('wpLtl'),db=document.getElementById('wpDb'),cb=document.getElementById('wpCb'),sb=document.getElementById('wpSaveBtn');
+  if(!waypoints.length){list.innerHTML='';title.style.display='none';db.style.display='none';cb.style.display='none';if(sb)sb.style.display='none';return;}
+  title.style.display='block';db.style.display='block';cb.style.display='block';if(sb)sb.style.display='flex';
+  list.innerHTML=waypoints.map((wp,i)=>`<div class="wp-item"><div class="wp-num">${i+1}</div><div class="wp-inf"><div class="wp-nm">${wp.name}</div><div class="wp-co">${ddToDDM(wp.lat,'NS')}&nbsp;&nbsp;${ddToDDM(wp.lon,'EW')}</div></div><button class="wp-del" onclick="removeWp(${i})">✕</button></div>`).join('');
+}
+function removeWp(i){waypoints.splice(i,1);renderWpList();}
+function drawRoute(){
+  if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}wpMarkers.forEach(m=>map.removeLayer(m));wpMarkers=[];if(!waypoints.length)return;
+  routeLayer=L.polyline(waypoints.map(wp=>[wp.lat,wp.lon]),{color:'#00d4aa',weight:2.5,dashArray:'8,4',opacity:.9}).addTo(map);
+  waypoints.forEach((wp,i)=>{const mk=L.marker([wp.lat,wp.lon],{icon:L.divIcon({className:'',html:`<div style="pointer-events:none;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center"><div style="background:rgba(4,16,28,.88);border:1px solid #00d4aa;color:#00d4aa;font-family:monospace;font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;white-space:nowrap;margin-bottom:2px">${i+1}. ${wp.name}</div><div style="width:6px;height:6px;background:#00d4aa;border-radius:50%"></div></div>`,iconSize:[0,0],iconAnchor:[0,0]}),interactive:false});mk.addTo(map);wpMarkers.push(mk);});
+  map.fitBounds(routeLayer.getBounds(),{padding:[30,30]});routeVisible=true;syncRouteBtn();
+}
+function clearWaypoints(){waypoints=[];if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}wpMarkers.forEach(m=>map.removeLayer(m));wpMarkers=[];routeVisible=false;syncRouteBtn();renderWpList();}
+function toggleWpPanel(){document.getElementById('wpPanel').classList.toggle('show');checkGPXBanner();}
+
+/* ─── SHOW / HIDE ROUTE ─── */
+function toggleRouteVisibility(){if(!routeLayer&&!wpMarkers.length){toast('BELUM ADA ROUTE');return;}routeVisible=!routeVisible;if(routeLayer){if(routeVisible)routeLayer.addTo(map);else map.removeLayer(routeLayer);}wpMarkers.forEach(m=>{if(routeVisible)m.addTo(map);else map.removeLayer(m);});syncRouteBtn();toast(routeVisible?'ROUTE: VISIBLE':'ROUTE: HIDDEN');}
+function syncRouteBtn(){const btn=document.getElementById('routeToggleBtn');if(!btn)return;const has=!!(routeLayer||wpMarkers.length);if(!has){btn.textContent='👁 SHOW ROUTE';btn.className='gpx-btn toggle-off';return;}btn.textContent=routeVisible?'🚫 HIDE ROUTE':'👁 SHOW ROUTE';btn.className=routeVisible?'gpx-btn toggle-on':'gpx-btn toggle-off';}
+
+/* ─── SAVE GPX → NAVHUB INDEXEDDB ─── */
+async function saveGPXtoNavHub(){
+  if(!waypoints.length){toast('TIDAK ADA WAYPOINT');return;}
+  const fileName=`route_${new Date().toISOString().split('T')[0]}.gpx`;
+  await NavHubDB.saveGPX('main',{
+    fileName,
+    waypoints  :waypoints.map(wp=>({name:wp.name,lat:wp.lat,lon:wp.lon})),
+    trackPoints:waypoints.map(wp=>({lat:wp.lat,lon:wp.lon})),
+    rawGPX     :NavHubDB.generateGPXString(waypoints,'NavHub Route'),
   });
-  lines.push('', '━'.repeat(38), `Total: ${chain.length} peta`);
-  document.getElementById('exportText').value = lines.join('\n');
+  NavHubDB.notifyParent('nh-gpx-saved');
+  toast('✓ ROUTE DISIMPAN KE NAVHUB');
 }
 
-function copyExport() {
-  updateExport();
-  const txt = document.getElementById('exportText').value;
-  if (!txt) return;
-  navigator.clipboard.writeText(txt).then(() => {
-    const b = event.target; b.textContent = '✓ TERSALIN!';
-    setTimeout(() => b.textContent = 'COPY TEKS', 2000);
-  }).catch(() => {
-    document.getElementById('exportText').select();
-    document.execCommand('copy');
-  });
+/* ─── DOWNLOAD GPX (via parent) ─── */
+function downloadGPX(){
+  if(!waypoints.length){toast('TIDAK ADA WAYPOINT');return;}
+  const fileName=`route_${new Date().toISOString().split('T')[0]}.gpx`;
+  const content=NavHubDB.generateGPXString(waypoints,'NavHub Route');
+  NavHubDB.notifyParent('nh-download-gpx',{fileName,content});
+  toast('⬇ MENGIRIM KE NAVHUB...');
 }
 
-// ===== UI CONTROLS =====
-function toggleMode() {
-  mapMode = !mapMode;
-  const btn = document.getElementById('modeBtn');
-  const mapWrap = document.getElementById('mapWrap');
-  const textMode = document.getElementById('textMode');
-  if (mapMode) {
-    btn.textContent = '🗺 MAP'; btn.classList.remove('on');
-    mapWrap.style.display = 'flex';
-    textMode.classList.remove('show');
-    setTimeout(() => map.invalidateSize(), 50);
-  } else {
-    btn.textContent = '📋 TEXT'; btn.classList.add('on');
-    mapWrap.style.display = 'none';
-    textMode.classList.add('show');
-    renderTextList();
-  }
+/* ─── LOAD GPX FROM INDEXEDDB ─── */
+async function checkGPXBanner(){
+  const rec=await NavHubDB.getGPX('main');
+  const banner=document.getElementById('gpxBanner');
+  if(rec){document.getElementById('gpxBannerTxt').textContent=`${rec.fileName}  ·  ${rec.waypointCount} wpt  ·  ${rec.trackPointCount} trk pts`;banner.classList.add('show');}
+  else{banner.classList.remove('show');}
+  syncRouteBtn();
+}
+async function loadGPXFromStorage(){
+  const rec=await NavHubDB.getGPX('main');if(!rec){toast('TIDAK ADA DATA GPX');return;}
+  if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}wpMarkers.forEach(m=>map.removeLayer(m));wpMarkers=[];waypoints=[];
+  if(rec.waypoints&&rec.waypoints.length)rec.waypoints.forEach(w=>waypoints.push({name:w.name||('WP'+(waypoints.length+1)),lat:w.lat,lon:w.lon}));
+  if(!waypoints.length&&rec.trackPoints&&rec.trackPoints.length)rec.trackPoints.forEach((p,i)=>waypoints.push({name:'T'+(i+1),lat:p.lat,lon:p.lon}));
+  renderWpList();
+  const pts=(rec.trackPoints&&rec.trackPoints.length)?rec.trackPoints:waypoints;
+  if(pts.length)routeLayer=L.polyline(pts.map(p=>[p.lat,p.lon]),{color:'#00d4aa',weight:2.5,dashArray:'8,4',opacity:.9}).addTo(map);
+  waypoints.forEach((wp,i)=>{const mk=L.marker([wp.lat,wp.lon],{icon:L.divIcon({className:'',html:`<div style="pointer-events:none;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center"><div style="background:rgba(4,16,28,.88);border:1px solid #00d4aa;color:#00d4aa;font-family:monospace;font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;white-space:nowrap;margin-bottom:2px">${i+1}. ${wp.name}</div><div style="width:6px;height:6px;background:#00d4aa;border-radius:50%"></div></div>`,iconSize:[0,0],iconAnchor:[0,0]}),interactive:false});mk.addTo(map);wpMarkers.push(mk);});
+  routeVisible=true;syncRouteBtn();if(routeLayer)map.fitBounds(routeLayer.getBounds(),{padding:[30,30]});
+  toast(`GPX LOADED · ${waypoints.length} WPT`);document.getElementById('wpPanel').classList.remove('show');
 }
 
-function setFilter(layer, btn) {
-  if (layer === 'ALL') {
-    activeFilters = new Set(['ALL']);
-    document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
-    btn.classList.add('on');
-  } else {
-    activeFilters.delete('ALL');
-    document.querySelector('.fbtn[data-layer="ALL"]').classList.remove('on');
-    if (activeFilters.has(layer)) {
-      activeFilters.delete(layer);
-      btn.classList.remove('on');
-      if (activeFilters.size === 0) {
-        activeFilters.add('ALL');
-        document.querySelector('.fbtn[data-layer="ALL"]').classList.add('on');
-      }
-    } else {
-      activeFilters.add(layer);
-      btn.classList.add('on');
-    }
-  }
-  renderMap();
-  renderTextList();
-}
-
-function toggleSheet() {
-  sheetCollapsed = !sheetCollapsed;
-  document.getElementById("sheet").classList.toggle("expanded", !sheetCollapsed);
-  setTimeout(()=>map.invalidateSize(), 310);
-}
-
-function showTab(tab, el) {
-  activeTab = tab;
-  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('on'));
-  el.classList.add('on');
-  document.getElementById('chainTab').style.display = tab==='chain' ? 'block' : 'none';
-  document.getElementById('exportTab').style.display = tab==='export' ? 'block' : 'none';
-  if (tab === 'export') updateExport();
-}
-
-function showLoad(msg) {
-  document.getElementById('loadOver').classList.add('show');
-  document.getElementById('loadTxt').textContent = msg;
-}
-function hideLoad() { document.getElementById('loadOver').classList.remove('show'); }
+/* ─── INIT ─── */
+document.addEventListener('DOMContentLoaded',()=>{autoLoadChartData();syncRouteBtn();});
 </script>
 </body>
 </html>
