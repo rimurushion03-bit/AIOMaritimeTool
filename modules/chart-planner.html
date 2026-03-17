@@ -178,6 +178,41 @@ body.night .leaflet-tile{filter:brightness(.35) saturate(.2) hue-rotate(330deg);
   color:var(--muted2);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
 .sv-del:hover{border-color:var(--danger);color:var(--danger);}
 
+/* CHART DETAIL PANEL */
+#chartDetail{display:none;position:fixed;inset:0;z-index:4000;
+  background:rgba(4,16,28,.85);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  align-items:flex-end;}
+#chartDetail.show{display:flex;}
+.cd-sheet{width:100%;max-height:72vh;background:var(--panel);border-top:2px solid var(--border2);
+  border-radius:16px 16px 0 0;display:flex;flex-direction:column;
+  animation:cdUp .25s cubic-bezier(.4,0,.2,1);}
+@keyframes cdUp{from{transform:translateY(60px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.cd-hd{display:flex;align-items:flex-start;gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.cd-hd-left{flex:1;min-width:0;}
+.cd-hd-id{font-family:var(--fhud);font-size:28px;font-weight:600;color:var(--accent);line-height:1;}
+.cd-hd-layer{display:inline-block;font-family:var(--fmono);font-size:9px;letter-spacing:1.5px;padding:3px 8px;
+  border-radius:20px;border:1px solid var(--border2);color:var(--muted2);margin-top:4px;}
+.cd-hd-title{font-size:11px;color:var(--text);line-height:1.4;margin-top:6px;}
+.cd-close{width:32px;height:32px;background:transparent;border:1px solid var(--border2);
+  border-radius:8px;color:var(--muted2);cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.cd-close:active{border-color:var(--danger);color:var(--danger);}
+.cd-body{flex:1;overflow-y:auto;padding:12px 16px;}
+.cd-row{display:flex;justify-content:space-between;align-items:baseline;
+  padding:8px 0;border-bottom:1px solid var(--border);}
+.cd-row:last-child{border-bottom:none;}
+.cd-lbl{font-family:var(--fmono);font-size:9px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;flex-shrink:0;}
+.cd-val{font-family:var(--fmono);font-size:11px;color:var(--text);text-align:right;max-width:65%;}
+.cd-val.accent{color:var(--accent);}
+.cd-val.blue{color:var(--blue);}
+.cd-val.gold{color:var(--gold);}
+.cd-footer{padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0;}
+.cd-chain-btn{width:100%;padding:11px;background:var(--adim);border:1px solid var(--accent);
+  border-radius:8px;color:var(--accent);font-family:var(--fhud);font-size:16px;
+  letter-spacing:2px;cursor:pointer;transition:all .15s;}
+.cd-chain-btn:active{opacity:.7;}
+.cd-chain-btn.in{background:rgba(255,215,0,.12);border-color:var(--gold);color:var(--gold);}
+
 /* WP PANEL */
 #wpPanel{display:none;position:fixed;inset:0;z-index:3000;
   background:rgba(4,16,28,.97);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);flex-direction:column;}
@@ -283,7 +318,7 @@ body.night .leaflet-tile{filter:brightness(.35) saturate(.2) hue-rotate(330deg);
     <button class="hbtn" id="wpBtn" onclick="toggleWpPanel()">📍 WP</button>
     <button class="hbtn" id="chainModeBtn" onclick="toggleChainMode()" title="Chain Mode">⛓</button>
     <button class="hbtn chain-done" id="chainDoneBtn" onclick="finishChain()" title="Selesai chain">✓ SELESAI</button>
-  </div>
+      </div>
 
   <!-- FILTER TOGGLE -->
   <div id="fbt" onclick="toggleFB()"><span class="fbt-a" id="fbt-arrow">▲</span></div>
@@ -350,6 +385,24 @@ body.night .leaflet-tile{filter:brightness(.35) saturate(.2) hue-rotate(330deg);
     </div>
   </div>
 
+</div>
+
+<!-- CHART DETAIL PANEL -->
+<div id="chartDetail" onclick="closeDetail(event)">
+  <div class="cd-sheet">
+    <div class="cd-hd">
+      <div class="cd-hd-left">
+        <div class="cd-hd-id" id="cdId">—</div>
+        <div class="cd-hd-layer" id="cdLayer">—</div>
+        <div class="cd-hd-title" id="cdTitle">—</div>
+      </div>
+      <button class="cd-close" onclick="closeDetailBtn()">✕</button>
+    </div>
+    <div class="cd-body" id="cdBody"></div>
+    <div class="cd-footer">
+      <button class="cd-chain-btn" id="cdChainBtn" onclick="detailToggleChain()">+ TAMBAH KE CHAIN</button>
+    </div>
+  </div>
 </div>
 
 <!-- WP PANEL -->
@@ -509,9 +562,47 @@ function renderText(){
   const el=document.getElementById('txList');
   if(!fil.length){el.innerHTML='<div class="empty">Tidak ada peta ditemukan.</div>';return;}
   el.innerHTML=fil.map(c=>{const ic=chain.includes(c.uid),col=LC[c.layer]?.s||'#fff';
-    return`<div class="tcard ${ic?'inc':''}" onclick="toggleChain('${c.uid}')"><div class="tno">${c.attr.CHART_ID||'—'}</div><div class="tinf"><div class="ttl">${c.attr.TITLE||''}</div><div class="tmt">${c.layer} · ${c.attr.EDITION||''}</div></div><div class="tsc" style="color:${col}">1:${Number(c.attr.SCALE||0).toLocaleString('id')}<br><span style="color:var(--muted);font-size:8px">${ic?'✓ IN CHAIN':''}</span></div></div>`;
+    return`<div class="tcard ${ic?'inc':''}" onclick="openDetail('${c.uid}')"><div class="tno">${c.attr.CHART_ID||'—'}</div><div class="tinf"><div class="ttl">${c.attr.TITLE||''}</div><div class="tmt">${c.layer} · ${c.attr.EDITION||''}</div></div><div class="tsc" style="color:${col}">1:${Number(c.attr.SCALE||0).toLocaleString('id')}<br><span style="color:var(--muted);font-size:8px">${ic?'✓ IN CHAIN':''}</span></div></div>`;
   }).join('');
 }
+
+/* ─── CHART DETAIL ─── */
+let detailUid=null;
+function openDetail(uid){
+  const c=charts.find(ch=>ch.uid===uid);if(!c)return;
+  detailUid=uid;
+  const a=c.attr;
+  document.getElementById('cdId').textContent=a.CHART_ID||'—';
+  document.getElementById('cdLayer').textContent=c.layer;
+  document.getElementById('cdTitle').textContent=a.TITLE||'—';
+  const rows=[
+    {lbl:'Scale',val:'1 : '+Number(a.SCALE||0).toLocaleString('id'),cls:'blue'},
+    {lbl:'Edition',val:a.EDITION||'—',cls:''},
+    {lbl:'Datum',val:a.DATUM||'—',cls:''},
+    {lbl:'Year Print',val:a.YEAR_PRINT||'—',cls:''},
+    {lbl:'Printed',val:a.PRINTED||'—',cls:''},
+    {lbl:'NM s/d',val:a.NM_PRINTED||'—',cls:'accent'},
+    {lbl:'Bounding Box',val:`${c.bbox.minLat.toFixed(4)}°–${c.bbox.maxLat.toFixed(4)}° / ${c.bbox.minLon.toFixed(4)}°–${c.bbox.maxLon.toFixed(4)}°`,cls:''},
+  ];
+  document.getElementById('cdBody').innerHTML=rows.map(r=>
+    `<div class="cd-row"><span class="cd-lbl">${r.lbl}</span><span class="cd-val ${r.cls}">${r.val}</span></div>`
+  ).join('');
+  syncDetailChainBtn();
+  document.getElementById('chartDetail').classList.add('show');
+}
+function syncDetailChainBtn(){
+  const inChain=chain.includes(detailUid);
+  const btn=document.getElementById('cdChainBtn');
+  btn.textContent=inChain?'✓ DALAM CHAIN  ·  HAPUS':'+ TAMBAH KE CHAIN';
+  btn.classList.toggle('in',inChain);
+}
+function detailToggleChain(){
+  if(!chainMode){toast('AKTIFKAN CHAIN MODE ⛓ DULU');return;}
+  toggleChain(detailUid);
+  syncDetailChainBtn();
+}
+function closeDetailBtn(){document.getElementById('chartDetail').classList.remove('show');detailUid=null;}
+function closeDetail(e){if(e.target===document.getElementById('chartDetail'))closeDetailBtn();}
 
 /* ─── CHAIN ─── */
 function bboxX(a,b){return!(a.maxLon<b.minLon||a.minLon>b.maxLon||a.maxLat<b.minLat||a.minLat>b.maxLat);}
@@ -558,6 +649,7 @@ function renderChainList(){
     return`<div class="ci"><div class="cnum">${i+1}</div><div class="cinf"><div class="cid">${a.CHART_ID}<span class="cly">${c.layer}</span></div><div class="ctl">${a.TITLE||''}</div></div><div class="csc">1:${Number(a.SCALE||0).toLocaleString('id')}</div><div class="cacts"><button class="cact" onclick="moveChain('${uid}',-1)">↑</button><button class="cact" onclick="moveChain('${uid}',1)">↓</button><button class="cact" onclick="removeFromChain('${uid}')">✕</button></div></div>`;
   }).join('');
   if(activeTab==='exp')updateExport();
+  if(detailUid)syncDetailChainBtn();
 }
 
 /* ─── EXPORT ─── */
