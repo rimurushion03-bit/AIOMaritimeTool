@@ -283,6 +283,8 @@ body.night .leaflet-tile{filter:brightness(.35) saturate(.2) hue-rotate(330deg);
     <button class="hbtn" id="wpBtn" onclick="toggleWpPanel()">📍 WP</button>
     <button class="hbtn" id="chainModeBtn" onclick="toggleChainMode()" title="Chain Mode">⛓</button>
     <button class="hbtn chain-done" id="chainDoneBtn" onclick="finishChain()" title="Selesai chain">✓ SELESAI</button>
+    <button class="hbtn" onclick="document.getElementById('fileIn').click()" title="Load JSON manual">📂</button>
+    <input type="file" id="fileIn" accept=".json" style="display:none" onchange="loadFile(event)">
   </div>
 
   <!-- FILTER TOGGLE -->
@@ -515,7 +517,7 @@ function renderText(){
 
 /* ─── CHAIN ─── */
 function bboxX(a,b){return!(a.maxLon<b.minLon||a.minLon>b.maxLon||a.maxLat<b.minLat||a.minLat>b.maxLat);}
-function toggleChain(uid){if(chainMode){chainAdd(uid);return;}const i=chain.indexOf(uid);if(i===-1)chain.push(uid);else chain.splice(i,1);updateRect(uid);renderChainList();renderText();if(sheetCol&&chain.length>0)toggleSheet();}
+function toggleChain(uid){if(!chainMode)return;chainAdd(uid);}
 function chainAdd(uid){
   const i=chain.indexOf(uid);if(i!==-1){const rm=chain.splice(i);rm.forEach(u=>updateRect(u));rebuildIntersect();renderMap();renderChainList();renderText();return;}
   chain.push(uid);updateRect(uid);const c=charts.find(ch=>ch.uid===uid);
