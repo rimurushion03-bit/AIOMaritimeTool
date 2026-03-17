@@ -1,1674 +1,1608 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Passage Monitoring - SJ13 Pro</title>
-    <style>
-        :root {
-            --bg-deep: #0a1322; 
-            --card-bg: #16243d; 
-            --border-blue: #2c3e5d;
-            --accent-blue: #007bff;
-            --text-main: #e2e8f0;
-            --accent-yellow: #ffd600;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#04101c">
+<title>Passage Monitoring — NavHub</title>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600&family=JetBrains+Mono:wght@300;400;600&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#04101c; --bg2:#061624; --bg3:#07192a;
+  --panel:rgba(9,30,48,0.97); --ps:#091e30;
+  --border:rgba(0,212,170,0.13); --border2:rgba(0,212,170,0.26);
+  --accent:#00d4aa; --adim:rgba(0,212,170,0.10); --aglow:rgba(0,212,170,0.22);
+  --orange:#ff8c42; --gold:#ffd700; --blue:#4a9eff; --purple:#a78bfa;
+  --danger:#ef4444; --success:#10b981; --warn:#f59e0b;
+  --text:#c8ddf0; --muted:#3d6080; --muted2:#5a7a96;
+  --fhud:'Teko',sans-serif; --fmono:'JetBrains Mono',monospace; --fbody:'Noto Sans',sans-serif;
+}
+body.night {
+  --bg:#000; --bg2:#07000a; --bg3:#0a0008;
+  --panel:rgba(18,3,3,0.97); --ps:#120303;
+  --border:rgba(255,34,34,0.16); --border2:rgba(255,34,34,0.3);
+  --accent:#ff2222; --adim:rgba(255,34,34,0.10); --aglow:rgba(255,34,34,0.22);
+  --text:#ffaaaa; --muted:#4a1a1a; --muted2:#7a3232;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--fbody);}
+#app{display:flex;flex-direction:column;height:100dvh;position:relative;}
 
-        /* Night Mode - RED for bridge night vision */
-        body.night-mode {
-            --bg-deep: #000000;
-            --card-bg: #1a0505;
-            --border-blue: #3d1515;
-            --accent-blue: #ff2222;
-            --text-main: #ff9999;
-            --accent-yellow: #ff4444;
-            --success: #ff3333;
-            --danger: #ff0000;
-            --warning: #ff2222;
-        }
+/* BG */
+#bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:44px 44px;opacity:.35;}
+@keyframes scan{0%{transform:translateY(-4px);}100%{transform:translateY(100vh);}}
+#scan-line{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+#scan-line::after{content:'';position:absolute;width:100%;height:3px;
+  background:linear-gradient(transparent,var(--aglow),transparent);animation:scan 14s linear infinite;}
 
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: var(--bg-deep);
-            color: var(--text-main);
-            margin: 0;
-            padding: 8px;
-            transition: background-color 0.3s, color 0.3s;
-        }
+/* HEADER */
+#hdr{flex-shrink:0;background:var(--panel);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border2);padding:8px 12px;
+  display:flex;align-items:center;gap:6px;z-index:500;position:relative;}
+#hdr::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.3;}
+.hbk{height:30px;padding:0 9px;background:transparent;border:1px solid var(--orange);
+  border-radius:7px;color:var(--orange);font-family:var(--fmono);font-size:10px;
+  letter-spacing:1px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.hbk:active{opacity:.7;}
+.hlogo{font-family:var(--fhud);font-size:20px;font-weight:600;letter-spacing:3px;color:var(--accent);line-height:1;flex-shrink:0;}
+.hlogo-s{font-family:var(--fmono);font-size:7px;letter-spacing:1px;color:var(--muted2);}
+.hsp{flex:1;}
+.hbtn{height:30px;padding:0 9px;background:transparent;border:1px solid var(--border2);
+  border-radius:7px;color:var(--muted2);font-family:var(--fmono);font-size:9px;letter-spacing:1px;
+  cursor:pointer;transition:all .15s;flex-shrink:0;display:flex;align-items:center;gap:4px;}
+.hbtn:active,.hbtn.on{background:var(--adim);border-color:var(--accent);color:var(--accent);}
+.hbtn.gps-on{background:rgba(16,185,129,.15);border-color:var(--success);color:var(--success);}
+.hbtn.gps-searching{background:rgba(255,215,0,.1);border-color:var(--gold);color:var(--gold);}
 
-        .container {
-            width: 100%;
-            max-width: 1200px;
-            margin: auto;
-            background: var(--card-bg);
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid var(--border-blue);
-            transition: background 0.3s, border-color 0.3s;
-        }
+/* MORE MENU */
+#moreWrap{position:relative;flex-shrink:0;}
+#moreMenu{position:fixed;background:var(--panel);
+  border:1px solid var(--border2);border-radius:10px;padding:6px;z-index:6000;
+  display:none;flex-direction:column;gap:4px;min-width:160px;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);}
+#moreMenu.show{display:flex;}
+.mm-btn{width:100%;padding:9px 12px;border-radius:7px;border:1px solid var(--border);
+  background:transparent;color:var(--text);font-family:var(--fmono);font-size:10px;
+  letter-spacing:1px;cursor:pointer;transition:all .15s;text-align:left;}
+.mm-btn:active{background:var(--adim);border-color:var(--accent);color:var(--accent);}
+.mm-sep{height:1px;background:var(--border);margin:2px 0;}
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--border-blue);
-            flex-wrap: wrap;
-            gap: 8px;
-        }
+/* ROUTE DROPDOWN */
+#routeDropWrap{position:relative;flex-shrink:0;}
+#routesDrop{position:fixed;background:var(--panel);border:1px solid var(--border2);
+  border-radius:10px;padding:6px;z-index:6000;display:none;flex-direction:column;
+  min-width:200px;max-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+#routesDrop.show{display:flex;}
+#routesDropList{max-height:260px;overflow-y:auto;scrollbar-width:thin;
+  scrollbar-color:var(--muted) transparent;}
+#routesDropList::-webkit-scrollbar{width:3px;}
+#routesDropList::-webkit-scrollbar-thumb{background:var(--muted);border-radius:2px;}
+.rdrop-item{display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:7px;transition:background .15s;}
+.rdrop-item:hover{background:var(--adim);}
+.rdrop-item.active{background:var(--adim);}
+.rdrop-name{flex:1;font-family:var(--fmono);font-size:10px;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:6px 4px;cursor:pointer;}
+.rdrop-item.active .rdrop-name{color:var(--accent);font-weight:600;}
+.rdrop-edit,.rdrop-del{width:24px;height:24px;background:transparent;border:1px solid var(--border);
+  border-radius:5px;color:var(--muted2);cursor:pointer;font-size:11px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.rdrop-edit:active{border-color:var(--accent);color:var(--accent);}
+.rdrop-del:active{border-color:var(--danger);color:var(--danger);}
+.rdrop-rename{display:none;align-items:center;gap:4px;padding:4px 6px;}
+.rdrop-rename.show{display:flex;}
+.rdrop-rename-in{flex:1;background:var(--bg);border:1px solid var(--accent);border-radius:6px;
+  color:var(--text);font-family:var(--fmono);font-size:10px;padding:5px 8px;outline:none;}
+.rdrop-rename-ok{height:26px;padding:0 10px;background:var(--accent);border:none;border-radius:5px;
+  color:var(--bg);font-family:var(--fmono);font-size:9px;cursor:pointer;flex-shrink:0;}
+.rdrop-footer{border-top:1px solid var(--border);padding-top:6px;margin-top:4px;display:flex;flex-direction:column;gap:4px;}
+.rdrop-new{width:100%;padding:8px 12px;border-radius:7px;border:1px dashed var(--border2);
+  background:transparent;color:var(--muted2);font-family:var(--fmono);font-size:10px;
+  cursor:pointer;transition:all .15s;text-align:left;letter-spacing:.5px;}
+.rdrop-new:active{border-color:var(--accent);color:var(--accent);}
 
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+/* PROGRESS BAR */
+#progWrap{flex-shrink:0;padding:5px 12px;background:var(--bg2);border-bottom:1px solid var(--border);display:none;}
+#progWrap.show{display:block;}
+.prog-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.prog-lbl{font-family:var(--fmono);font-size:8px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;}
+.prog-pct{font-family:var(--fhud);font-size:16px;color:var(--accent);line-height:1;}
+.prog-track{height:6px;background:var(--adim);border-radius:3px;overflow:hidden;border:1px solid var(--border);}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--blue));border-radius:3px;transition:width .5s ease;width:0%;}
+.prog-wps{display:flex;justify-content:space-between;margin-top:3px;}
+.prog-wp-dot{font-family:var(--fmono);font-size:7px;color:var(--muted);text-align:center;}
 
-        .sog-box {
-            background: rgba(0, 123, 255, 0.1);
-            padding: 4px 10px;
-            border-radius: 5px;
-            border: 1px solid var(--accent-blue);
-            font-size: 0.8rem;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
+/* DEP PANEL */
+#depPanel{flex-shrink:0;background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:5px 12px;display:flex;flex-direction:column;gap:5px;z-index:480;}
+.dp-row{display:flex;align-items:center;gap:5px;}
+.dp-lbl{font-family:var(--fmono);font-size:9px;color:var(--muted);flex-shrink:0;}
+.dp-in{height:28px;background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  color:var(--text);font-family:var(--fmono);font-size:10px;padding:0 8px;outline:none;
+  transition:border-color .15s;}
+.dp-in:focus{border-color:var(--accent);}
+.dp-in[type="date"],.dp-in[type="time"]{width:120px;}
+.dp-spd{width:55px;text-align:center;color:var(--gold);}
+.dp-sp{flex:1;}
+.dbtn{height:28px;padding:0 10px;border-radius:6px;font-family:var(--fmono);font-size:9px;
+  letter-spacing:1px;cursor:pointer;transition:all .15s;border:1px solid var(--border2);
+  color:var(--muted2);background:transparent;white-space:nowrap;}
+.dbtn:active{opacity:.7;}
+.dbtn.pri{background:var(--accent);border-color:var(--accent);color:var(--bg);}
+.dbtn.warn{background:var(--warn);border-color:var(--warn);color:#000;}
+.dbtn.sync{background:var(--success);border-color:var(--success);color:#fff;}
 
-        .speed-presets {
-            display: flex;
-            gap: 3px;
-        }
 
-        .speed-btn {
-            background: rgba(0, 123, 255, 0.2);
-            border: 1px solid var(--accent-blue);
-            color: var(--accent-blue);
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 9px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
+/* TABLE WRAPPER */
+#tableWrap{flex:1;overflow:auto;position:relative;z-index:1;}
+table{width:100%;border-collapse:collapse;min-width:700px;}
+thead{position:sticky;top:0;z-index:10;}
+th{background:rgba(4,16,28,.97);color:var(--muted);font-family:var(--fmono);font-size:8px;
+  letter-spacing:1.5px;padding:6px 5px;border:1px solid var(--border);text-transform:uppercase;
+  white-space:nowrap;}
+td{padding:3px 4px;border:1px solid var(--border);font-size:11px;vertical-align:middle;transition:background .2s;}
+.td-act{width:36px;text-align:center;}
+.td-no{width:28px;text-align:center;font-family:var(--fhud);font-size:14px;color:var(--muted);}
+tr.active-row td{background:rgba(0,212,170,.08) !important;}
+tr.active-row .td-no{color:var(--accent);}
+body.night tr.active-row td{background:rgba(255,34,34,.08) !important;}
+tr.dtg-warn td{background:rgba(245,158,11,.12) !important;}
+tr.dtg-crit td{background:rgba(239,68,68,.2) !important;animation:dtgPulse 1.5s infinite;}
+@keyframes dtgPulse{0%,100%{background:rgba(239,68,68,.2)!important;}50%{background:rgba(239,68,68,.35)!important;}}
+tr.dragging{opacity:.45;}
+.drag-handle{cursor:grab;color:var(--muted);font-size:12px;}
+.drag-handle:active{cursor:grabbing;}
 
-        .speed-btn:hover, .speed-btn.active {
-            background: var(--accent-blue);
-            color: white;
-        }
+/* TABLE INPUTS */
+.t-in{background:transparent;border:none;color:var(--text);font-family:var(--fmono);
+  font-size:10px;outline:none;width:100%;padding:1px 2px;transition:background .15s;}
+.t-in:focus{background:var(--adim);border-radius:3px;}
+.in-name{font-weight:600;color:var(--accent);width:85px;}
+.in-chart{width:55px;}
+.in-deg{width:32px;text-align:center;}
+.in-min{width:56px;text-align:right;color:var(--gold);}
+.in-dtg{width:50px;border:1px solid var(--gold)!important;text-align:center;color:var(--gold);
+  border-radius:3px;padding:2px 3px;}
+.in-rem{width:95px;}
+.sel-dir{background:transparent;border:none;color:var(--muted2);font-family:var(--fmono);
+  font-size:10px;outline:none;cursor:pointer;}
+.ll-wrap{display:flex;flex-direction:column;gap:1px;}
+.ll-row{display:flex;align-items:center;gap:1px;}
+.cell-dist{font-family:var(--fmono);font-size:10px;color:var(--blue);text-align:center;white-space:nowrap;}
+.cell-crs{font-family:var(--fmono);font-size:10px;color:var(--text);text-align:center;}
+.cell-eta{font-family:var(--fmono);font-size:9px;color:var(--gold);text-align:center;white-space:nowrap;}
+.go-btn{height:22px;padding:0 6px;border-radius:4px;background:var(--accent);border:none;
+  color:var(--bg);font-family:var(--fmono);font-size:8px;cursor:pointer;letter-spacing:1px;transition:all .15s;}
+.go-btn:active{opacity:.7;}
+body.night .go-btn{background:var(--accent);}
 
-        .night-toggle {
-            background: transparent;
-            border: none;
-            font-size: 12px;
-            cursor: pointer;
-            opacity: 0.3;
-            transition: opacity 0.3s;
-            padding: 5px;
-        }
+/* DASHBOARD */
+#dash{flex-shrink:0;background:var(--panel);border-top:1px solid var(--border2);
+  padding:8px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;z-index:490;}
+.ds{text-align:center;flex:1;min-width:60px;}
+.ds-lbl{font-family:var(--fmono);font-size:7px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;display:block;}
+.ds-val{font-family:var(--fhud);font-size:20px;color:var(--accent);line-height:1;}
+.ds-unit{font-family:var(--fmono);font-size:8px;color:var(--muted2);}
+.ds-sep{width:1px;height:30px;background:var(--border);flex-shrink:0;}
 
-        .night-toggle:hover {
-            opacity: 1;
-        }
+/* GPS BADGE */
+#gpsBadge{flex-shrink:0;background:rgba(16,185,129,.1);border:1px solid var(--success);
+  border-radius:8px;padding:4px 10px;display:none;flex-direction:column;gap:1px;}
+#gpsBadge.show{display:flex;}
+.gps-coord{font-family:var(--fmono);font-size:9px;color:var(--success);}
+.gps-acc{font-family:var(--fmono);font-size:7px;color:var(--muted2);}
 
-        .dep-panel {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 12px;
-        }
+/* STATUS BAR */
+#statusBar{flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);
+  padding:4px 12px;display:flex;align-items:center;gap:10px;z-index:490;}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:var(--success);flex-shrink:0;}
+.sb-dot.warn{background:var(--warn);}
+.sb-txt{font-family:var(--fmono);font-size:8px;color:var(--muted2);}
+.sb-sp{flex:1;}
+.sb-clk{font-family:var(--fmono);font-size:9px;color:var(--accent);font-weight:600;}
 
-        .table-wrapper { 
-            overflow-x: auto; 
-            position: relative;
-        }
-        
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-        }
-        
-        th { 
-            background: rgba(0,0,0,0.3); 
-            color: #94a3b8; 
-            font-size: 10px; 
-            padding: 6px 4px; 
-            border: 1px solid var(--border-blue);
-            text-transform: uppercase;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
+/* ═══ OVERLAYS ═══ */
+.overlay{position:fixed;inset:0;z-index:2000;background:rgba(4,16,28,.92);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:flex-end;}
+.overlay.show{display:flex;}
+.overlay.center{align-items:center;justify-content:center;}
+.ov-sheet{width:100%;max-height:85vh;background:var(--panel);border-top:2px solid var(--border2);
+  border-radius:16px 16px 0 0;display:flex;flex-direction:column;
+  animation:slideUp .25s cubic-bezier(.4,0,.2,1);}
+@keyframes slideUp{from{transform:translateY(50px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.ov-box{background:var(--panel);border:1px solid var(--border2);border-radius:12px;
+  max-width:400px;width:92%;max-height:85vh;overflow-y:auto;
+  animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:scale(.97);}to{opacity:1;transform:scale(1);}}
+.ov-hd{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.ov-title{font-family:var(--fhud);font-size:20px;letter-spacing:2px;color:var(--accent);flex:1;}
+.ov-close{width:30px;height:30px;background:transparent;border:1px solid var(--border2);border-radius:7px;
+  color:var(--muted2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.ov-close:active{border-color:var(--danger);color:var(--danger);}
+.ov-body{flex:1;overflow-y:auto;padding:14px 16px;}
+.ov-footer{padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:8px;}
+.ov-btn{flex:1;padding:11px;border-radius:8px;font-family:var(--fhud);font-size:15px;
+  letter-spacing:2px;cursor:pointer;transition:all .15s;border:none;}
+.ov-btn.pri{background:var(--accent);color:var(--bg);}
+.ov-btn.sec{background:transparent;border:1px solid var(--border2);color:var(--muted2);}
+.ov-btn.danger{background:var(--danger);color:#fff;}
+.ov-btn:active{opacity:.7;}
 
-        td { 
-            padding: 4px; 
-            border: 1px solid var(--border-blue); 
-            font-size: 11px;
-            vertical-align: middle;
-            transition: background 0.3s;
-        }
+/* FORM ELEMENTS */
+.f-lbl{font-family:var(--fmono);font-size:8px;letter-spacing:2px;color:var(--muted);
+  text-transform:uppercase;display:block;margin-bottom:5px;}
+.f-in{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;
+  color:var(--text);font-family:var(--fmono);font-size:11px;padding:9px 11px;outline:none;
+  transition:border-color .15s;margin-bottom:12px;}
+.f-in:focus{border-color:var(--accent);}
+.f-ta{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;
+  color:var(--text);font-family:var(--fbody);font-size:12px;padding:10px 12px;outline:none;
+  resize:none;line-height:1.6;transition:border-color .15s;}
+.f-ta:focus{border-color:var(--accent);}
 
-        .lat-lon-container {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
+/* ROUTE LIST ITEMS */
+.rt-item{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.rt-item:last-child{border-bottom:none;}
+.rt-inf{flex:1;min-width:0;}
+.rt-name{font-family:var(--fmono);font-size:12px;color:var(--text);font-weight:600;}
+.rt-meta{font-family:var(--fmono);font-size:9px;color:var(--muted2);margin-top:2px;}
+.rt-load{padding:5px 10px;background:var(--adim);border:1px solid var(--accent);
+  border-radius:6px;color:var(--accent);font-family:var(--fmono);font-size:9px;cursor:pointer;transition:all .15s;}
+.rt-load:active{opacity:.7;}
+.rt-del{width:26px;height:26px;background:transparent;border:1px solid var(--border2);
+  border-radius:5px;color:var(--muted2);cursor:pointer;font-size:11px;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.rt-del:hover{border-color:var(--danger);color:var(--danger);}
+.rt-empty{text-align:center;padding:24px;font-family:var(--fmono);font-size:10px;color:var(--muted);line-height:1.8;}
 
-        .stack-row {
-            display: flex;
-            align-items: center;
-            gap: 2px;
-        }
+/* TOAST */
+#toast{position:fixed;top:48px;left:50%;transform:translateX(-50%);z-index:9998;pointer-events:none;}
+.ti{background:var(--panel);border:1px solid var(--accent);padding:7px 16px;border-radius:20px;
+  box-shadow:0 0 18px var(--aglow);font-family:var(--fmono);font-size:10px;color:var(--accent);letter-spacing:2px;
+  opacity:0;transform:translateY(-6px);transition:all .3s cubic-bezier(.175,.885,.32,1.275);}
+.ti.show{opacity:1;transform:translateY(0);}
 
-        input, select {
-            background: #1e2d4d;
-            border: 1px solid var(--border-blue);
-            border-radius: 3px;
-            color: white;
-            padding: 2px;
-            font-size: 11px;
-            outline: none;
-            transition: background 0.3s, border-color 0.3s;
-        }
+/* CONTEXT MENU */
+#ctxMenu{position:fixed;background:var(--panel);border:1px solid var(--border2);
+  border-radius:8px;padding:4px 0;z-index:9000;box-shadow:0 8px 32px rgba(0,0,0,.5);
+  min-width:180px;display:none;}
+.ctx-item{padding:9px 14px;cursor:pointer;font-family:var(--fmono);font-size:11px;
+  display:flex;align-items:center;gap:8px;transition:background .15s;color:var(--text);}
+.ctx-item:hover{background:var(--adim);color:var(--accent);}
+.ctx-item.danger:hover{background:rgba(239,68,68,.1);color:var(--danger);}
+.ctx-sep{height:1px;background:var(--border);margin:3px 0;}
 
-        body.night-mode input,
-        body.night-mode select {
-            background: #1a0808;
-            border-color: #3d1515;
-            color: #ff9999;
-        }
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--muted);border-radius:3px;}
 
-        .wp-name { width: 90px; font-weight: bold; color: var(--accent-blue); }
-        .chart-no { width: 60px; }
-        .remarks-in { width: 100px; }
-        
-        .deg-in { width: 35px; text-align: center; font-family: monospace; }
-        .min-in { width: 60px; text-align: right; color: var(--accent-yellow); font-family: monospace; }
-        .dtg-live { width: 55px; border-color: var(--accent-yellow); font-weight: bold; color: var(--accent-yellow); text-align: center; }
-
-        .btn {
-            border: none;
-            padding: 5px 12px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn:active {
-            transform: scale(0.95);
-        }
-        .btn-blue { background: var(--accent-blue); color: white; }
-        .btn-sync { background: var(--success); color: white; flex-grow: 1; }
-        .btn-del { background: var(--danger); color: white; }
-        .btn-ghost { background: transparent; border: 1px solid var(--border-blue); color: var(--text-main); }
-        .btn-warn { background: var(--warning); color: black; }
-
-        .dashboard {
-            display: flex; 
-            justify-content: space-around;
-            margin-top: 15px;
-            padding: 10px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 6px;
-            border: 1px solid var(--border-blue);
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .stat { text-align: center; }
-        .stat-label { font-size: 9px; color: #94a3b8; text-transform: uppercase; display: block; }
-        .stat-val { font-size: 1.2rem; font-weight: bold; color: var(--accent-blue); }
-
-        .active-row { background: rgba(0, 123, 255, 0.15) !important; }
-        
-        /* DTG Alert Colors */
-        .dtg-warning { background: rgba(245, 158, 11, 0.25) !important; }
-        .dtg-critical { background: rgba(239, 68, 68, 0.35) !important; animation: pulse-critical 1.5s infinite; }
-        
-        @keyframes pulse-critical {
-            0%, 100% { background: rgba(239, 68, 68, 0.35); }
-            50% { background: rgba(239, 68, 68, 0.55); }
-        }
-
-        /* Drag and Drop Styles */
-        tr.dragging {
-            opacity: 0.5;
-            background: #2c3e5d;
-        }
-        .drag-handle {
-            cursor: grab;
-        }
-        .drag-handle:active {
-            cursor: grabbing;
-        }
-
-        /* Save Indicator */
-        .save-toast {
-            position: fixed;
-            top: 15px;
-            left: 50%;
-            transform: translateX(-50%) translateY(-100px);
-            background: var(--success);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: bold;
-            z-index: 10000;
-            opacity: 0;
-            transition: all 0.3s ease;
-            pointer-events: none;
-        }
-        .save-toast.show {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-        }
-
-        /* Context Menu */
-        .context-menu {
-            position: fixed;
-            background: var(--card-bg);
-            border: 1px solid var(--border-blue);
-            border-radius: 6px;
-            padding: 5px 0;
-            z-index: 10000;
-            box-shadow: 0 5px 25px rgba(0,0,0,0.5);
-            min-width: 180px;
-        }
-        .context-menu-item {
-            padding: 10px 15px;
-            cursor: pointer;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: background 0.2s;
-        }
-        .context-menu-item:hover {
-            background: rgba(0, 123, 255, 0.15);
-            color: var(--accent-blue);
-        }
-        .context-menu-divider {
-            height: 1px;
-            background: var(--border-blue);
-            margin: 5px 0;
-        }
-
-        /* Modal */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.85);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            backdrop-filter: blur(3px);
-        }
-        .modal-overlay.show {
-            display: flex;
-        }
-        .modal-box {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid var(--border-blue);
-            max-width: 380px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        .modal-title {
-            margin: 0 0 15px 0;
-            font-size: 14px;
-            color: var(--accent-blue);
-            letter-spacing: 1px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .modal-row {
-            margin-bottom: 12px;
-        }
-        .modal-label {
-            display: block;
-            font-size: 10px;
-            color: #94a3b8;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .modal-select {
-            width: 100%;
-            padding: 10px;
-            font-size: 12px;
-        }
-        .modal-input {
-            width: 100%;
-            padding: 8px;
-            box-sizing: border-box;
-        }
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .modal-buttons .btn {
-            flex: 1;
-            padding: 12px;
-        }
-
-        /* Transfer Point Result */
-        .tp-result {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid var(--border-blue);
-            border-radius: 6px;
-            padding: 12px;
-            margin-top: 15px;
-            display: none;
-        }
-        .tp-result.show {
-            display: block;
-        }
-        .tp-coord {
-            font-family: monospace;
-            font-size: 14px;
-            color: var(--accent-yellow);
-            text-align: center;
-            margin: 10px 0;
-        }
-        .tp-stats {
-            display: flex;
-            justify-content: space-around;
-            font-size: 10px;
-            color: #94a3b8;
-            margin-top: 10px;
-        }
-
-        /* Confirm Modal */
-        .confirm-text {
-            text-align: center;
-            padding: 15px 0;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-        .confirm-warn {
-            color: var(--danger);
-            font-weight: bold;
-        }
-
-        /* Status Bar */
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 10px;
-            padding: 8px 12px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 5px;
-            font-size: 9px;
-            color: #94a3b8;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .status-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--success);
-        }
-        .status-dot.warning {
-            background: var(--warning);
-        }
-
-        /* Local Clock */
-        .local-clock {
-            font-family: monospace;
-            font-weight: bold;
-            color: var(--accent-blue);
-        }
-    </style>
+/* NOTE char counter */
+.note-footer{display:flex;justify-content:space-between;align-items:center;margin-top:6px;}
+.note-chars{font-family:var(--fmono);font-size:8px;color:var(--muted);}
+</style>
 </head>
 <body>
 
-<!-- Save Toast -->
-<div class="save-toast" id="saveToast">💾 DATA SAVED</div>
+<div id="bg-grid"></div>
+<div id="scan-line"></div>
 
-<!-- Context Menu -->
-<div class="context-menu" id="contextMenu" style="display:none;"></div>
-
-<!-- Confirm Modal -->
-<div class="modal-overlay" id="confirmModal">
-    <div class="modal-box">
-        <h3 class="modal-title">⚠️ CONFIRM ACTION</h3>
-        <div class="confirm-text" id="confirmText"></div>
-        <div class="modal-buttons">
-            <button class="btn btn-del" id="confirmYes">YES, DO IT</button>
-            <button class="btn btn-ghost" onclick="closeConfirmModal()">CANCEL</button>
-        </div>
+<div id="app">
+  <!-- HEADER -->
+  <div id="hdr">
+    <button class="hbk" onclick="try{window.parent.switchModule('home')}catch(e){history.back()}">⊞ HUB</button>
+    <div>
+      <div class="hlogo">PASSAGE MON</div>
+      <div class="hlogo-s">WAYPOINT & ETA TRACKER</div>
     </div>
+    <div class="hsp"></div>
+    <button class="hbtn" id="gpsBtn" onclick="toggleGPS()" title="GPS Position">📡 GPS</button>
+    <button class="hbtn" id="noteBtn" onclick="openNote()" title="Voyage Note">📝 NOTE</button>
+    <div id="routeDropWrap">
+      <button class="hbtn" id="routesBtn" onclick="toggleRoutesDrop(event)">🗂 <span id="routeActiveLabel">ROUTES</span> ▾</button>
+      <div id="routesDrop">
+        <div id="routesDropList"></div>
+        <div class="rdrop-footer">
+          <button class="rdrop-new" onclick="newRoute();closeRoutesDrop()">+ NEW ROUTE</button>
+        </div>
+      </div>
+    </div>
+    <button class="hbtn" id="saveBtn" onclick="saveCurrentRoute(true)">💾 SAVE</button>
+  </div>
+
+  <!-- PROGRESS BAR -->
+  <div id="progWrap">
+    <div class="prog-row">
+      <span class="prog-lbl">VOYAGE PROGRESS</span>
+      <span class="prog-pct" id="progPct">0%</span>
+    </div>
+    <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+    <div class="prog-wps">
+      <span class="prog-wp-dot" id="progFrom">—</span>
+      <span class="prog-wp-dot" id="progTo">—</span>
+    </div>
+  </div>
+
+  <!-- DEP PANEL -->
+  <div id="depPanel">
+    <div class="dp-row">
+      <input type="date" class="dp-in" id="depDate" onchange="calculateAll();triggerAutoSave();">
+      <input type="time" class="dp-in" id="depTime" onchange="calculateAll();triggerAutoSave();">
+      <button class="dbtn pri" onclick="setDepNow()">NOW</button>
+      <span class="dp-lbl">SOG</span>
+      <input type="number" class="dp-in dp-spd" id="shipSpeed" value="6.0" step="0.1" min="0.1" max="25" oninput="calculateAll();triggerAutoSave();">
+      <span class="dp-lbl">KTS</span>
+      <button class="dbtn" onclick="addRow()">+ WP</button>
+      <button class="dbtn" style="color:var(--danger);border-color:rgba(239,68,68,.3);" onclick="confirmDelRow()">DEL</button>
+    </div>
+    <div class="dp-row">
+      <button class="dbtn" onclick="reverseWPs()">↕ REV</button>
+      <div id="moreWrap">
+        <button class="dbtn" onclick="toggleMore(event)">⋯ MORE</button>
+        <div id="moreMenu">
+          <button class="mm-btn" onclick="openTP();toggleMore()">📐 Transfer Point</button>
+          <div class="mm-sep"></div>
+          <button class="mm-btn" onclick="importGPXFromNavHub();toggleMore()">📡 Load GPX dari NavHub</button>
+          <button class="mm-btn" onclick="exportGPXCurrent();toggleMore()">⬇ GPX Rute Ini</button>
+          <button class="mm-btn" onclick="exportGPXBulk();toggleMore()">⬇ GPX Semua Rute</button>
+          <div class="mm-sep"></div>
+          <button class="mm-btn" onclick="document.getElementById('csvIn').click();toggleMore()">📂 CSV Import</button>
+          <button class="mm-btn" onclick="exportCSV();toggleMore()">📤 CSV Export</button>
+        </div>
+      </div>
+      <div class="dp-sp"></div>
+      <button class="dbtn sync" onclick="calculateAll()">⚡ SYNC</button>
+    </div>
+    <input type="file" id="csvIn" accept=".csv" style="display:none" onchange="importCSV(this)">
+  </div>
+
+  <!-- TABLE -->
+  <div id="tableWrap">
+    <table id="navTable">
+      <thead>
+        <tr>
+          <th class="td-act">GO</th>
+          <th class="td-no">#</th>
+          <th>WAYPOINT</th>
+          <th>CHART</th>
+          <th>LATITUDE</th>
+          <th>LONGITUDE</th>
+          <th>DIST</th>
+          <th>DTG</th>
+          <th>CRS</th>
+          <th>REMARKS</th>
+          <th>ETA</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dash">
+    <div id="gpsBadge">
+      <div class="gps-coord" id="gpsLat">—</div>
+      <div class="gps-coord" id="gpsLon">—</div>
+      <div class="gps-acc" id="gpsAcc">ACC: —</div>
+    </div>
+    <div class="ds">
+      <span class="ds-lbl">Remaining</span>
+      <span class="ds-val" id="totalDist">0.00</span>
+      <span class="ds-unit">NM</span>
+    </div>
+    <div class="ds-sep"></div>
+    <div class="ds">
+      <span class="ds-lbl">Time To Go</span>
+      <span class="ds-val" id="totalTime">0.0</span>
+      <span class="ds-unit">HRS</span>
+    </div>
+    <div class="ds-sep"></div>
+    <div class="ds">
+      <span class="ds-lbl">Final ETA</span>
+      <span class="ds-val" id="etaDisplay" style="font-size:14px;color:var(--success);">-- : --</span>
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div id="statusBar">
+    <div class="sb-dot" id="saveDot"></div>
+    <span class="sb-txt" id="saveTxt">AUTO-SAVE: ON</span>
+    <div class="sb-sp"></div>
+    <span class="sb-clk" id="clkLT">--:--:--</span>
+  </div>
 </div>
 
-<!-- Transfer Point Modal -->
-<div class="modal-overlay" id="tpModal">
-    <div class="modal-box">
-        <h3 class="modal-title">🧭 TRANSFER POINT CALCULATOR</h3>
-        
-        <div class="modal-row">
-            <label class="modal-label">Waypoint A (From)</label>
-            <select class="modal-select" id="tpWaypointA" onchange="updateTPPreview()">
-                <option value="">-- Select Waypoint --</option>
-            </select>
-        </div>
+<!-- TOAST -->
+<div id="toast"><div class="ti" id="ti"></div></div>
 
-        <div class="modal-row">
-            <label class="modal-label">Waypoint B (To)</label>
-            <select class="modal-select" id="tpWaypointB" onchange="updateTPPreview()">
-                <option value="">-- Select Waypoint --</option>
-            </select>
-        </div>
+<!-- CONTEXT MENU -->
+<div id="ctxMenu"></div>
 
-        <div class="modal-row">
-            <label class="modal-label">Calculate Point At</label>
-            <select class="modal-select" id="tpMethod" onchange="toggleTPInputs()">
-                <option value="fraction">Fraction of Distance</option>
-                <option value="lat">Specific Latitude</option>
-                <option value="lon">Specific Longitude</option>
-            </select>
-        </div>
-
-        <div class="modal-row" id="tpFractionRow">
-            <label class="modal-label">Distance Fraction (0.1 - 0.9)</label>
-            <input type="range" id="tpFraction" min="0.1" max="0.9" step="0.1" value="0.5" 
-                   style="width:100%;" oninput="document.getElementById('tpFractionVal').textContent=this.value; updateTPPreview()">
-            <div style="text-align:center; font-size:18px; color:var(--accent-yellow); margin-top:5px;">
-                <span id="tpFractionVal">0.5</span> <small style="font-size:10px;">(50% = Midpoint)</small>
-            </div>
-        </div>
-
-        <div class="modal-row" id="tpLatRow" style="display:none;">
-            <label class="modal-label">Target Latitude</label>
-            <div style="display:flex; gap:5px; align-items:center;">
-                <input type="number" class="modal-input deg-in" id="tpTargetLatDeg" placeholder="00" style="width:50px;" oninput="updateTPPreview()">
-                <span>°</span>
-                <input type="number" class="modal-input min-in" id="tpTargetLatMin" placeholder="00.000" step="0.001" style="width:80px;" oninput="updateTPPreview()">
-                <span>'</span>
-                <select id="tpTargetLatDir" style="padding:5px;" onchange="updateTPPreview()">
-                    <option>N</option>
-                    <option>S</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="modal-row" id="tpLonRow" style="display:none;">
-            <label class="modal-label">Target Longitude</label>
-            <div style="display:flex; gap:5px; align-items:center;">
-                <input type="number" class="modal-input deg-in" id="tpTargetLonDeg" placeholder="000" style="width:50px;" oninput="updateTPPreview()">
-                <span>°</span>
-                <input type="number" class="modal-input min-in" id="tpTargetLonMin" placeholder="00.000" step="0.001" style="width:80px;" oninput="updateTPPreview()">
-                <span>'</span>
-                <select id="tpTargetLonDir" style="padding:5px;" onchange="updateTPPreview()">
-                    <option>E</option>
-                    <option>W</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="tp-result" id="tpResult">
-            <div style="font-size:10px; color:#94a3b8; text-align:center;">CALCULATED POSITION</div>
-            <div class="tp-coord" id="tpResultCoord">--° --.-' - / ---° --.-' -</div>
-            <div class="tp-stats">
-                <span>A → TP: <strong id="tpDistA">--</strong> NM</span>
-                <span>TP → B: <strong id="tpDistB">--</strong> NM</span>
-                <span>Course: <strong id="tpCourse">--</strong>°</span>
-            </div>
-        </div>
-
-        <div class="modal-buttons">
-            <button class="btn btn-blue" onclick="insertTransferPoint()">INSERT AS WAYPOINT</button>
-            <button class="btn btn-ghost" onclick="closeTPModal()">CANCEL</button>
-        </div>
+<!-- ═══ OVERLAY: NOTE ═══ -->
+<div class="overlay center" id="noteOverlay" onclick="closeNote(event)">
+  <div class="ov-box">
+    <div class="ov-hd">
+      <span class="ov-title">📝 VOYAGE NOTE</span>
+      <button class="ov-close" onclick="closeNoteBtn()">✕</button>
     </div>
+    <div class="ov-body">
+      <label class="f-lbl">Note untuk rute ini</label>
+      <textarea class="f-ta" id="noteTA" rows="10" maxlength="2000" placeholder="Catatan pelayaran, kondisi cuaca, instruksi khusus..." oninput="updateNoteCount()"></textarea>
+      <div class="note-footer">
+        <span class="note-chars" id="noteChars">0 / 2000</span>
+      </div>
+    </div>
+    <div class="ov-footer">
+      <button class="ov-btn pri" onclick="saveNote()">SIMPAN NOTE</button>
+      <button class="ov-btn sec" onclick="closeNoteBtn()">TUTUP</button>
+    </div>
+  </div>
 </div>
 
-<!-- Main Container -->
-<div class="container">
-    <div class="header">
-        <div class="header-left">
-            <button onclick="try{window.parent.switchModule('home')}catch(e){history.back()}" title="NavHub" style="background:transparent;border:1px solid #ff8c42;color:#ff8c42;border-radius:4px;padding:4px 8px;font-size:14px;cursor:pointer;flex-shrink:0;">⊞</button>
-            <h2 style="margin:0; font-size:1.1rem;">
-                PASSAGE MONITORING 
-                <span style="font-weight:300; opacity:0.6;">| SJ13 Pro</span>
-            </h2>
-            <button class="night-toggle" onclick="toggleNightMode()" title="Toggle Night Mode">🌙</button>
-<button class="night-toggle" onclick="toggleFullscreen()" title="Toggle Fullscreen" id="fsBtn">⛶</button>
-        </div>
-        
-        <div class="sog-box">
-            SOG 
-            <input type="number" id="shipSpeed" value="6.0" step="0.1" min="0.1" max="25"
-                   style="background:transparent; border:none; color:var(--accent-yellow); font-weight:bold; width:40px; text-align:center;"
-                   oninput="calculateAll(); triggerAutoSave();"> 
-            KTS
-            <div class="speed-presets">
-                <button class="speed-btn" onclick="setSpeed(5)">5</button>
-                <button class="speed-btn active" onclick="setSpeed(6)">6</button>
-                <button class="speed-btn" onclick="setSpeed(7)">7</button>
-                <button class="speed-btn" onclick="setSpeed(8)">8</button>
-            </div>
-        </div>
+<!-- ═══ OVERLAY: ROUTES ═══ -->
+<div class="overlay" id="routesOverlay" onclick="closeRoutes(event)">
+  <div class="ov-sheet">
+    <div class="ov-hd">
+      <span class="ov-title">🗂 SAVED ROUTES</span>
+      <button class="ov-close" onclick="closeRoutesBtn()">✕</button>
     </div>
-
-    <div class="dep-panel">
-        <input type="date" id="depDate" onchange="calculateAll(); triggerAutoSave();">
-        <input type="time" id="depTime" onchange="calculateAll(); triggerAutoSave();">
-        <button class="btn btn-blue" onclick="setDepartureNow()">SET NOW</button>
-        <button class="btn btn-ghost" onclick="addRow()">+ WP</button>
-        <button class="btn btn-del" onclick="confirmRemoveRow()">DEL</button>
-        <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">IMPORT</button>
-        <button class="btn btn-ghost" onclick="exportToCSV()">CSV</button>
-        <button class="btn btn-ghost" onclick="reverseWaypoints()">REVERSE</button>
-        <button class="btn btn-warn" onclick="openTPModal()">📐 TP</button>
-        <button class="btn btn-sync" onclick="calculateAll()">⚡ SYNC</button>
-        <input type="file" id="importFile" accept=".csv" style="display:none;" onchange="importCSV(this)">
+    <div class="ov-body" id="routesList"></div>
+    <div class="ov-footer">
+      <button class="ov-btn pri" onclick="newRoute();closeRoutesBtn()">+ NEW ROUTE</button>
+      <button class="ov-btn sec" onclick="closeRoutesBtn()">TUTUP</button>
     </div>
-
-    <div class="table-wrapper">
-        <table id="navTable">
-            <thead>
-                <tr>
-                    <th>ACT</th>
-                    <th>NO</th>
-                    <th>WAYPOINT NAME</th>
-                    <th>CHART NO</th>
-                    <th>LATITUDE</th>
-                    <th>LONGITUDE</th>
-                    <th width="60">PLAN DIST</th>
-                    <th width="60">DTG LIVE</th>
-                    <th width="50">COURSE</th>
-                    <th>REMARKS</th>
-                    <th width="120">ETA</th>
-                </tr>
-            </thead>
-            <tbody id="sortableBody"></tbody>
-        </table>
-    </div>
-
-    <div class="dashboard">
-        <div class="stat">
-            <span class="stat-label">Remaining Distance</span>
-            <span class="stat-val" id="totalDist">0.00</span> <small>NM</small>
-        </div>
-        <div class="stat">
-            <span class="stat-label">Time To Go</span>
-            <span class="stat-val" id="totalTime">0.0</span> <small>HRS</small>
-        </div>
-        <div class="stat">
-            <span class="stat-label">Final ETA</span>
-            <span class="stat-val" id="etaDisplay" style="color:var(--success);">-- : --</span>
-        </div>
-    </div>
-
-    <div class="status-bar">
-        <div class="status-item">
-            <span class="status-dot" id="saveStatus"></span>
-            <span id="saveStatusText">AUTO-SAVE: ON</span>
-        </div>
-        <div class="status-item">
-            TIME: <span class="local-clock" id="localClock">--:--:--</span>
-        </div>
-        <div class="status-item">
-            <button class="btn btn-ghost" style="padding:3px 8px; font-size:9px;" onclick="exportBackup()">💾 BACKUP</button>
-            <button class="btn btn-ghost" style="padding:3px 8px; font-size:9px;" onclick="document.getElementById('importBackup').click()">📂 RESTORE</button>
-            <input type="file" id="importBackup" accept=".json" style="display:none;" onchange="importBackup(this)">
-        </div>
-    </div>
+  </div>
 </div>
 
+<!-- ═══ OVERLAY: CONFIRM ═══ -->
+<div class="overlay center" id="confirmOverlay">
+  <div class="ov-box">
+    <div class="ov-hd"><span class="ov-title">⚠ KONFIRMASI</span></div>
+    <div class="ov-body">
+      <div style="text-align:center;padding:8px 0;font-size:13px;line-height:1.7;" id="confirmMsg"></div>
+    </div>
+    <div class="ov-footer">
+      <button class="ov-btn danger" id="confirmYes">YA, LANJUT</button>
+      <button class="ov-btn sec" onclick="closeConfirm()">BATAL</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ OVERLAY: TP CALCULATOR ═══ -->
+<div class="overlay center" id="tpOverlay" onclick="closeTP(event)">
+  <div class="ov-box">
+    <div class="ov-hd">
+      <span class="ov-title">📐 TRANSFER POINT</span>
+      <button class="ov-close" onclick="closeTPBtn()">✕</button>
+    </div>
+    <div class="ov-body">
+      <label class="f-lbl">Waypoint A (From)</label>
+      <select class="f-in" id="tpA" onchange="calcTP()" style="padding:8px 11px;"></select>
+      <label class="f-lbl">Waypoint B (To)</label>
+      <select class="f-in" id="tpB" onchange="calcTP()" style="padding:8px 11px;"></select>
+      <label class="f-lbl">Metode</label>
+      <select class="f-in" id="tpMethod" onchange="toggleTPInputs();calcTP()" style="padding:8px 11px;">
+        <option value="fraction">Fraction of Distance</option>
+        <option value="lat">Target Latitude</option>
+        <option value="lon">Target Longitude</option>
+      </select>
+      <div id="tpFrRow">
+        <label class="f-lbl">Fraction (0.1–0.9)</label>
+        <input type="range" id="tpFrac" min="0.1" max="0.9" step="0.1" value="0.5"
+          style="width:100%;accent-color:var(--accent);" oninput="document.getElementById('tpFracV').textContent=this.value;calcTP()">
+        <div style="text-align:center;font-family:var(--fhud);font-size:20px;color:var(--gold);margin:4px 0;">
+          <span id="tpFracV">0.5</span><span style="font-size:10px;font-family:var(--fmono);color:var(--muted);margin-left:4px">= 50%</span>
+        </div>
+      </div>
+      <div id="tpLatRow" style="display:none;">
+        <label class="f-lbl">Target Latitude</label>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:12px;">
+          <input type="number" class="f-in" id="tpTLatD" placeholder="00" style="width:60px;margin:0;" oninput="calcTP()">
+          <span style="font-family:var(--fmono);color:var(--muted);">°</span>
+          <input type="number" class="f-in" id="tpTLatM" placeholder="00.000" step="0.001" style="width:85px;margin:0;" oninput="calcTP()">
+          <span style="font-family:var(--fmono);color:var(--muted);">'</span>
+          <select class="f-in" id="tpTLatDir" style="width:55px;margin:0;padding:8px 4px;" onchange="calcTP()"><option>N</option><option>S</option></select>
+        </div>
+      </div>
+      <div id="tpLonRow" style="display:none;">
+        <label class="f-lbl">Target Longitude</label>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:12px;">
+          <input type="number" class="f-in" id="tpTLonD" placeholder="000" style="width:65px;margin:0;" oninput="calcTP()">
+          <span style="font-family:var(--fmono);color:var(--muted);">°</span>
+          <input type="number" class="f-in" id="tpTLonM" placeholder="00.000" step="0.001" style="width:85px;margin:0;" oninput="calcTP()">
+          <span style="font-family:var(--fmono);color:var(--muted);">'</span>
+          <select class="f-in" id="tpTLonDir" style="width:55px;margin:0;padding:8px 4px;" onchange="calcTP()"><option>E</option><option>W</option></select>
+        </div>
+      </div>
+      <div id="tpResult" style="display:none;background:var(--adim);border:1px solid var(--border2);border-radius:8px;padding:12px;margin-top:4px;">
+        <div style="font-family:var(--fmono);font-size:8px;letter-spacing:2px;color:var(--muted);text-align:center;margin-bottom:8px;">CALCULATED POSITION</div>
+        <div style="font-family:var(--fmono);font-size:14px;color:var(--gold);text-align:center;line-height:1.8;" id="tpCoord">—</div>
+        <div style="display:flex;justify-content:space-around;font-family:var(--fmono);font-size:9px;color:var(--muted2);margin-top:8px;">
+          <span>A→TP: <strong id="tpDA" style="color:var(--blue);">—</strong> NM</span>
+          <span>TP→B: <strong id="tpDB" style="color:var(--blue);">—</strong> NM</span>
+          <span>CRS: <strong id="tpCRS" style="color:var(--text);">—</strong>°</span>
+        </div>
+      </div>
+    </div>
+    <div class="ov-footer">
+      <button class="ov-btn pri" onclick="insertTP()">INSERT AS WP</button>
+      <button class="ov-btn sec" onclick="closeTPBtn()">BATAL</button>
+    </div>
+  </div>
+</div>
+
+<script src="../navhub-db.js"></script>
 <script>
-    // ==================== GLOBAL STATE ====================
-    let activeRowIdx = null;
-    let autoSaveTimer = null;
-    let wakeLock = null;
-    let lastTPResult = null;
+'use strict';
 
-    // ==================== INITIALIZATION ====================
-    document.addEventListener('DOMContentLoaded', () => {
-        initApp();
-    });
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let activeRowIdx = null;
+let autoSaveTimer = null;
+let autoSaveInterval = null;
+let wakeLock = null;
+let lastTPResult = null;
+let toastT = null;
+let gpsWatchId = null;
+let gpsActive = false;
+let lastGPS = null;
 
-    function initApp() {
-        // Restore saved data
-        restoreFromLocalStorage();
-        
-        // Start local clock
-        updateLocalClock();
-        setInterval(updateLocalClock, 1000);
-        
-        // Auto-save every 30 seconds
-        setInterval(() => {
-            saveToLocalStorage(true);
-        }, 30000);
-        
-        // Request wake lock
-        requestWakeLock();
-        
-        // Restore night mode
-        if (localStorage.getItem('nightMode') === 'true') {
-            document.body.classList.add('night-mode');
-            document.querySelector('.night-toggle').textContent = '☀️';
-        }
-        
-        // If no waypoints, add defaults
-        if (document.querySelectorAll("#navTable tbody tr").length === 0) {
-            addRow(); addRow(); addRow();
-        }
-        
-        // Keyboard shortcuts
-        document.addEventListener('keydown', handleKeyboard);
-        
-        // Close context menu on click outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.context-menu')) {
-                document.getElementById('contextMenu').style.display = 'none';
-            }
-        });
-        
-        console.log('⚓ Passage Monitor initialized');
-    }
+// Route management
+let currentRouteId = null;
+let routes = {}; // id -> {id, name, note, settings, waypoints, savedAt}
 
-    // ==================== LOCAL CLOCK ====================
-    function updateLocalClock() {
-        const now = new Date();
-        const local = now.toTimeString().substring(0, 8);
-        document.getElementById('localClock').textContent = local;
-    }
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadAllRoutes();
+  startClock();
+  startAutoSave();
+  requestWakeLock();
+  // Night mode sync from parent
+  window.addEventListener('message', e => {
+    if (e.data && (e.data.type === 'night' || e.data.type === 'navhub-night'))
+      document.body.classList.toggle('night', e.data.value ?? e.data.night);
+  });
+  // Close context menu
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#ctxMenu')) document.getElementById('ctxMenu').style.display = 'none';
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeConfirm(); closeTPBtn(); closeNoteBtn(); closeRoutesBtn(); }
+    if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveCurrentRoute(true); }
+  });
+  if (document.querySelectorAll('#tbody tr').length === 0) {
+    addRow(); addRow(); addRow();
+  }
+});
 
-    // ==================== WAKE LOCK ====================
-    async function requestWakeLock() {
-        try {
-            if ('wakeLock' in navigator) {
-                wakeLock = await navigator.wakeLock.request('screen');
-                console.log('🔒 Screen wake lock active');
-                
-                document.addEventListener('visibilitychange', async () => {
-                    if (wakeLock !== null && document.visibilityState === 'visible') {
-                        wakeLock = await navigator.wakeLock.request('screen');
-                    }
-                });
-            }
-        } catch (err) {
-            console.warn('Wake lock not available:', err);
-        }
-    }
-
-    // ==================== NIGHT MODE ====================
-    function toggleNightMode() {
-        document.body.classList.toggle('night-mode');
-        const isNight = document.body.classList.contains('night-mode');
-        localStorage.setItem('nightMode', isNight);
-        document.querySelector('.night-toggle').textContent = isNight ? '☀️' : '🌙';
-    }
-
-    // ==================== SPEED PRESETS ====================
-    function setSpeed(speed) {
-        document.getElementById('shipSpeed').value = speed;
-        document.querySelectorAll('.speed-btn').forEach(btn => {
-            btn.classList.toggle('active', parseFloat(btn.textContent) === speed);
-        });
-        calculateAll();
-        triggerAutoSave();
-    }
-
-    // ==================== AUTO-SAVE SYSTEM ====================
-    function triggerAutoSave() {
-        clearTimeout(autoSaveTimer);
-        autoSaveTimer = setTimeout(() => {
-            saveToLocalStorage(true);
-        }, 1500);
-    }
-
-    function saveToLocalStorage(showToast = false) {
-        try {
-            const data = {
-                version: '2.0',
-                timestamp: new Date().toISOString(),
-                settings: {
-                    departureDate: document.getElementById('depDate').value,
-                    departureTime: document.getElementById('depTime').value,
-                    speed: document.getElementById('shipSpeed').value,
-                    activeWaypoint: activeRowIdx
-                },
-                waypoints: extractAllWaypoints()
-            };
-            
-            localStorage.setItem('passageData', JSON.stringify(data));
-            localStorage.setItem('passageBackup', JSON.stringify(data)); // Redundant backup
-            
-            if (showToast) {
-                showSaveToast();
-            }
-            
-            updateSaveStatus(true);
-            return true;
-        } catch (e) {
-            console.error('Save failed:', e);
-            updateSaveStatus(false);
-            return false;
-        }
-    }
-
-    function restoreFromLocalStorage() {
-        try {
-            let data = localStorage.getItem('passageData');
-            if (!data) {
-                data = localStorage.getItem('passageBackup');
-            }
-            
-            if (data) {
-                const parsed = JSON.parse(data);
-                
-                // Restore settings
-                if (parsed.settings) {
-                    document.getElementById('depDate').value = parsed.settings.departureDate || '';
-                    document.getElementById('depTime').value = parsed.settings.departureTime || '';
-                    document.getElementById('shipSpeed').value = parsed.settings.speed || '6.0';
-                    activeRowIdx = parsed.settings.activeWaypoint;
-                    
-                    // Update speed preset buttons
-                    const speed = parseFloat(parsed.settings.speed);
-                    document.querySelectorAll('.speed-btn').forEach(btn => {
-                        btn.classList.toggle('active', parseFloat(btn.textContent) === speed);
-                    });
-                }
-                
-                // Restore waypoints
-                if (parsed.waypoints && parsed.waypoints.length > 0) {
-                    const tbody = document.querySelector("#navTable tbody");
-                    tbody.innerHTML = '';
-                    
-                    parsed.waypoints.forEach((wp, idx) => {
-                        const row = addRow();
-                        const inputs = row.querySelectorAll("input, select");
-                        
-                        inputs[0].value = wp.name || '';
-                        inputs[1].value = wp.chartNo || '';
-                        inputs[2].value = wp.lat?.deg || '';
-                        inputs[3].value = wp.lat?.dir || 'N';
-                        inputs[4].value = wp.lat?.min || '';
-                        inputs[5].value = wp.lon?.deg || '';
-                        inputs[6].value = wp.lon?.dir || 'E';
-                        inputs[7].value = wp.lon?.min || '';
-                        inputs[8].value = wp.dtg || '';
-                        inputs[9].value = wp.remarks || '';
-                        
-                        // Restore active row styling
-                        if (idx === activeRowIdx) {
-                            row.classList.add('active-row');
-                        }
-                    });
-                    
-                    calculateAll();
-                }
-                
-                console.log('✅ Data restored from storage');
-            }
-        } catch (e) {
-            console.error('Restore failed:', e);
-        }
-    }
-
-    function extractAllWaypoints() {
-        const waypoints = [];
-        document.querySelectorAll("#navTable tbody tr").forEach(row => {
-            const inputs = row.querySelectorAll("input, select");
-            waypoints.push({
-                name: inputs[0].value,
-                chartNo: inputs[1].value,
-                lat: {
-                    deg: inputs[2].value,
-                    dir: inputs[3].value,
-                    min: inputs[4].value
-                },
-                lon: {
-                    deg: inputs[5].value,
-                    dir: inputs[6].value,
-                    min: inputs[7].value
-                },
-                dtg: inputs[8].value,
-                remarks: inputs[9].value
-            });
-        });
-        return waypoints;
-    }
-
-    function showSaveToast() {
-        const toast = document.getElementById('saveToast');
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2000);
-    }
-
-    function updateSaveStatus(success) {
-        const dot = document.getElementById('saveStatus');
-        const text = document.getElementById('saveStatusText');
-        
-        if (success) {
-            dot.classList.remove('warning');
-            text.textContent = 'AUTO-SAVE: ON';
-        } else {
-            dot.classList.add('warning');
-            text.textContent = 'SAVE FAILED!';
-        }
-    }
-
-    // ==================== BACKUP / RESTORE ====================
-    function exportBackup() {
-        const data = {
-            version: '2.0',
-            type: 'full-backup',
-            exportDate: new Date().toISOString(),
-            settings: {
-                departureDate: document.getElementById('depDate').value,
-                departureTime: document.getElementById('depTime').value,
-                speed: document.getElementById('shipSpeed').value,
-                activeWaypoint: activeRowIdx
-            },
-            waypoints: extractAllWaypoints()
-        };
-        
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `passage_backup_${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-        URL.revokeObjectURL(a.href);
-        
-        showSaveToast();
-    }
-
-    function importBackup(input) {
-        const file = input.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = JSON.parse(e.target.result);
-                
-                if (!data.waypoints) {
-                    alert('Invalid backup file!');
-                    return;
-                }
-                
-                // Store and restore
-                localStorage.setItem('passageData', JSON.stringify(data));
-                restoreFromLocalStorage();
-                
-                showSaveToast();
-                alert('✅ Backup restored successfully!');
-            } catch (err) {
-                alert('Failed to import backup: ' + err.message);
-            }
-        };
-        reader.readAsText(file);
-        input.value = '';
-    }
-
-    // ==================== KEYBOARD SHORTCUTS ====================
-    function handleKeyboard(e) {
-        // Ctrl+S - Save
-        if (e.ctrlKey && e.key === 's') {
-            e.preventDefault();
-            saveToLocalStorage(true);
-        }
-        // Ctrl+N - New waypoint
-        if (e.ctrlKey && e.key === 'n') {
-            e.preventDefault();
-            addRow();
-        }
-        // Escape - Close modals
-        if (e.key === 'Escape') {
-            closeTPModal();
-            closeConfirmModal();
-            document.getElementById('contextMenu').style.display = 'none';
-        }
-    }
-
-    // ==================== COORDINATE FORMATTING ====================
-    function formatCoord(input, type, coordType) {
-        let val = input.value;
-        if (val === "") return;
-        
-        let num = parseFloat(val) || 0;
-
-        if (type === 'deg') {
-            if (coordType === 'lat' && num > 90) num = 90;
-            if (coordType === 'lon' && num > 180) num = 180;
-            if (num < 0) num = 0;
-            
-            let pad = (coordType === 'lon') ? 3 : 2;
-            input.value = Math.floor(num).toString().padStart(pad, '0');
-        } else if (type === 'min') {
-            if (num >= 60) num = 59.999;
-            if (num < 0) num = 0;
-            input.value = num.toFixed(3).padStart(6, '0');
-        }
-        calculateAll();
-        triggerAutoSave();
-    }
-
-    // ==================== DEPARTURE TIME ====================
-    function setDepartureNow() {
-        const now = new Date();
-        // Format date as YYYY-MM-DD
-        const year = now.getFullYear();
-        const month = (now.getMonth() + 1).toString().padStart(2, '0');
-        const day = now.getDate().toString().padStart(2, '0');
-        document.getElementById('depDate').value = `${year}-${month}-${day}`;
-        
-        // Format time as HH:MM
-        const hours = now.getHours().toString().padStart(2, '0');
-        const minutes = now.getMinutes().toString().padStart(2, '0');
-        document.getElementById('depTime').value = `${hours}:${minutes}`;
-        
-        calculateAll();
-        triggerAutoSave();
-    }
-
-    // ==================== ACTIVE ROW ====================
-    function setActive(btn) {
-        const row = btn.closest('tr');
-        document.querySelectorAll('#navTable tbody tr').forEach(r => r.classList.remove('active-row'));
-        row.classList.add('active-row');
-        activeRowIdx = Array.from(row.parentNode.children).indexOf(row);
-        setDepartureNow();
-        triggerAutoSave();
-    }
-
-    // ==================== ROW MANAGEMENT ====================
-    function addRow(insertAfterIndex = null) {
-        const tbody = document.querySelector("#navTable tbody");
-        const idx = tbody.rows.length + 1;
-        
-        let row;
-        if (insertAfterIndex !== null && insertAfterIndex < tbody.rows.length) {
-            row = tbody.insertRow(insertAfterIndex + 1);
-        } else {
-            row = tbody.insertRow();
-        }
-        
-        row.draggable = true;
-        row.classList.add('draggable-row');
-        row.innerHTML = `
-            <td align="center"><button class="btn btn-blue" style="padding:2px 6px; font-size:9px;" onclick="setActive(this)">GO</button></td>
-            <td align="center" style="color:#94a3b8" class="drag-handle">${idx}</td>
-            <td><input type="text" class="wp-name" oninput="triggerAutoSave()"></td>
-            <td><input type="text" class="chart-no" oninput="triggerAutoSave()"></td>
-            <td>
-                <div class="lat-lon-container">
-                    <div class="stack-row">
-                        <input type="number" class="deg-in" placeholder="00" onblur="formatCoord(this, 'deg', 'lat')"> 
-                        <select onchange="calculateAll(); triggerAutoSave();"><option>N</option><option>S</option></select>
-                    </div>
-                    <div class="stack-row">
-                        <input type="number" class="min-in" step="0.001" placeholder="00.000" onblur="formatCoord(this, 'min', 'lat')">
-                    </div>
-                </div>
-            </td>
-            <td>
-                <div class="lat-lon-container">
-                    <div class="stack-row">
-                        <input type="number" class="deg-in" placeholder="000" onblur="formatCoord(this, 'deg', 'lon')"> 
-                        <select onchange="calculateAll(); triggerAutoSave();"><option>E</option><option>W</option></select>
-                    </div>
-                    <div class="stack-row">
-                        <input type="number" class="min-in" step="0.001" placeholder="00.000" onblur="formatCoord(this, 'min', 'lon')">
-                    </div>
-                </div>
-            </td>
-            <td align="center" class="d-plan">-</td>
-            <td align="center"><input type="number" class="dtg-live" placeholder="0.0" oninput="calculateAll(); triggerAutoSave(); checkDTGAlerts();"></td>
-            <td align="center" class="crs-val">-</td>
-            <td><input type="text" class="remarks-in" oninput="triggerAutoSave()"></td>
-            <td align="center" class="wp-eta" style="color:var(--accent-yellow); font-weight:bold;">-</td>
-        `;
-        
-        addDragEvents(row);
-        addContextMenu(row);
-        updateRowNumbers();
-        triggerAutoSave();
-        
-        return row;
-    }
-
-    function confirmRemoveRow() {
-        const tbody = document.querySelector("#navTable tbody");
-        if (tbody.rows.length === 0) return;
-        
-        const lastRow = tbody.rows[tbody.rows.length - 1];
-        const wpName = lastRow.querySelector('.wp-name').value || `Waypoint ${tbody.rows.length}`;
-        
-        showConfirmModal(
-            `Delete <span class="confirm-warn">${wpName}</span>?<br><small>This action cannot be undone.</small>`,
-            () => {
-                removeRow();
-            }
-        );
-    }
-
-    function removeRow() {
-        const tbody = document.querySelector("#navTable tbody");
-        if (tbody.rows.length > 0) {
-            tbody.deleteRow(-1);
-            updateRowNumbers();
-            calculateAll();
-            triggerAutoSave();
-        }
-    }
-
-    function removeSpecificRow(index) {
-        const tbody = document.querySelector("#navTable tbody");
-        const row = tbody.rows[index];
-        const wpName = row.querySelector('.wp-name').value || `Waypoint ${index + 1}`;
-        
-        showConfirmModal(
-            `Delete <span class="confirm-warn">${wpName}</span>?`,
-            () => {
-                tbody.deleteRow(index);
-                updateRowNumbers();
-                calculateAll();
-                triggerAutoSave();
-            }
-        );
-    }
-
-    function duplicateRow(index) {
-        const tbody = document.querySelector("#navTable tbody");
-        const sourceRow = tbody.rows[index];
-        const sourceInputs = sourceRow.querySelectorAll("input, select");
-        
-        const newRow = addRow(index);
-        const newInputs = newRow.querySelectorAll("input, select");
-        
-        // Copy values
-        newInputs[0].value = sourceInputs[0].value + ' (copy)';
-        newInputs[1].value = sourceInputs[1].value;
-        newInputs[2].value = sourceInputs[2].value;
-        newInputs[3].value = sourceInputs[3].value;
-        newInputs[4].value = sourceInputs[4].value;
-        newInputs[5].value = sourceInputs[5].value;
-        newInputs[6].value = sourceInputs[6].value;
-        newInputs[7].value = sourceInputs[7].value;
-        newInputs[9].value = sourceInputs[9].value;
-        
-        updateRowNumbers();
-        calculateAll();
-    }
-
-    function insertRowAfter(index) {
-        addRow(index);
-        updateRowNumbers();
-        calculateAll();
-    }
-
-    // ==================== CONTEXT MENU ====================
-    function addContextMenu(row) {
-        row.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            const rowIndex = Array.from(row.parentNode.children).indexOf(row);
-            showContextMenu(e.clientX, e.clientY, rowIndex);
-        });
-    }
-
-    function showContextMenu(x, y, rowIndex) {
-        const menu = document.getElementById('contextMenu');
-        const rows = document.querySelectorAll("#navTable tbody tr");
-        const hasNextRow = rowIndex < rows.length - 1;
-        
-        menu.innerHTML = `
-            <div class="context-menu-item" onclick="insertRowAfter(${rowIndex}); hideContextMenu();">
-                ➕ Insert Row After
-            </div>
-            <div class="context-menu-item" onclick="duplicateRow(${rowIndex}); hideContextMenu();">
-                📋 Duplicate Row
-            </div>
-            ${hasNextRow ? `
-            <div class="context-menu-divider"></div>
-            <div class="context-menu-item" onclick="openTPModalWithSelection(${rowIndex}, ${rowIndex + 1}); hideContextMenu();">
-                🧭 Transfer Point → WP${rowIndex + 2}
-            </div>
-            ` : ''}
-            <div class="context-menu-divider"></div>
-            <div class="context-menu-item" style="color:var(--danger);" onclick="removeSpecificRow(${rowIndex}); hideContextMenu();">
-                🗑️ Delete This Row
-            </div>
-        `;
-        
-        // Position menu
-        menu.style.left = Math.min(x, window.innerWidth - 200) + 'px';
-        menu.style.top = Math.min(y, window.innerHeight - 200) + 'px';
-        menu.style.display = 'block';
-    }
-
-    function hideContextMenu() {
-        document.getElementById('contextMenu').style.display = 'none';
-    }
-
-    // ==================== DRAG AND DROP ====================
-    function addDragEvents(row) {
-        row.addEventListener('dragstart', () => row.classList.add('dragging'));
-        row.addEventListener('dragend', () => {
-            row.classList.remove('dragging');
-            updateRowNumbers();
-            calculateAll();
-            triggerAutoSave();
-        });
-    }
-
-    const sortableList = document.getElementById('sortableBody');
-    sortableList.addEventListener('dragover', e => {
-        e.preventDefault();
-        const afterElement = getDragAfterElement(sortableList, e.clientY);
-        const dragging = document.querySelector('.dragging');
-        if (afterElement == null) {
-            sortableList.appendChild(dragging);
-        } else {
-            sortableList.insertBefore(dragging, afterElement);
-        }
-    });
-
-    function getDragAfterElement(container, y) {
-        const draggableElements = [...container.querySelectorAll('.draggable-row:not(.dragging)')];
-        return draggableElements.reduce((closest, child) => {
-            const box = child.getBoundingClientRect();
-            const offset = y - box.top - box.height / 2;
-            if (offset < 0 && offset > closest.offset) {
-                return { offset: offset, element: child };
-            } else {
-                return closest;
-            }
-        }, { offset: Number.NEGATIVE_INFINITY }).element;
-    }
-
-    function updateRowNumbers() {
-        document.querySelectorAll("#navTable tbody tr").forEach((row, i) => {
-            row.cells[1].innerText = i + 1;
-        });
-    }
-
-    function reverseWaypoints() {
-        showConfirmModal(
-            'Reverse all waypoints order?<br><small>This will flip the route direction.</small>',
-            () => {
-                const tbody = document.querySelector("#navTable tbody");
-                const rows = Array.from(tbody.rows);
-                rows.reverse().forEach(row => tbody.appendChild(row));
-                updateRowNumbers();
-                calculateAll();
-                triggerAutoSave();
-            }
-        );
-    }
-
-    // ==================== DTG ALERTS ====================
-    function checkDTGAlerts() {
-        document.querySelectorAll("#navTable tbody tr").forEach(row => {
-            const dtgInput = row.querySelector('.dtg-live');
-            const dtg = parseFloat(dtgInput.value);
-            
-            row.classList.remove('dtg-warning', 'dtg-critical');
-            
-            if (!isNaN(dtg) && dtg > 0) {
-                if (dtg <= 1) {
-                    row.classList.add('dtg-critical');
-                } else if (dtg <= 5) {
-                    row.classList.add('dtg-warning');
-                }
-            }
-        });
-    }
-
-    // ==================== MAIN CALCULATION ====================
-    function calculateAll() {
-        const rows = document.querySelectorAll("#navTable tbody tr");
-        const speed = parseFloat(document.getElementById("shipSpeed").value) || 1;
-        const dDate = document.getElementById('depDate').value;
-        const dTime = document.getElementById('depTime').value;
-        let totalRem = 0, hours = 0;
-
-        for (let i = 0; i < rows.length; i++) {
-            const ins = rows[i].querySelectorAll("input, select");
-            if (i > 0) {
-                const p = rows[i-1].querySelectorAll("input, select");
-                const toRad = Math.PI/180;
-                let lat1 = (parseFloat(p[2].value||0) + parseFloat(p[4].value||0)/60) * (p[3].value=='N'?1:-1);
-                let lon1 = (parseFloat(p[5].value||0) + parseFloat(p[7].value||0)/60) * (p[6].value=='E'?1:-1);
-                let lat2 = (parseFloat(ins[2].value||0) + parseFloat(ins[4].value||0)/60) * (ins[3].value=='N'?1:-1);
-                let lon2 = (parseFloat(ins[5].value||0) + parseFloat(ins[7].value||0)/60) * (ins[6].value=='E'?1:-1);
-
-                const a = Math.sin((lat2-lat1)*toRad/2)**2 + Math.cos(lat1*toRad)*Math.cos(lat2*toRad)*Math.sin((lon2-lon1)*toRad/2)**2;
-                const d = 3440.065 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                rows[i].querySelector(".d-plan").innerText = d.toFixed(2);
-                
-                let course = Math.round((Math.atan2(Math.sin((lon2-lon1)*toRad)*Math.cos(lat2*toRad), Math.cos(lat1*toRad)*Math.sin(lat2*toRad)-Math.sin(lat1*toRad)*Math.cos(lat2*toRad)*Math.cos((lon2-lon1)*toRad))*180/Math.PI+360)%360);
-                rows[i].querySelector(".crs-val").innerText = course.toString().padStart(3,'0') + "°";
-            } else {
-                rows[i].querySelector(".d-plan").innerText = "0.00";
-                rows[i].querySelector(".crs-val").innerText = "-";
-            }
-
-            if (activeRowIdx !== null && i >= activeRowIdx) {
-                const dtgInput = rows[i].querySelector(".dtg-live").value;
-                const val = (i === activeRowIdx && dtgInput !== "") ? parseFloat(dtgInput) : parseFloat(rows[i].querySelector(".d-plan").innerText) || 0;
-                hours += (val/speed); totalRem += val;
-            }
-
-            // ETA in Local Time
-            if (dDate && dTime && (activeRowIdx === null || i >= activeRowIdx)) {
-                let depTime = new Date(dDate + "T" + dTime); // Local time
-                let dt = new Date(depTime.getTime() + hours * 3600000);
-                rows[i].querySelector(".wp-eta").innerText = dt.toLocaleString('en-GB', {
-                    day: '2-digit',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                });
-            }
-        }
-        
-        document.getElementById("totalDist").innerText = totalRem.toFixed(2);
-        document.getElementById("totalTime").innerText = hours.toFixed(1);
-        
-        if (dDate && dTime) {
-            let depTime = new Date(dDate + "T" + dTime); // Local time
-            let f = new Date(depTime.getTime() + hours * 3600000);
-            document.getElementById("etaDisplay").innerText = f.toLocaleString('en-GB', {
-                day: '2-digit',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            });
-        }
-        
-        checkDTGAlerts();
-    }
-
-    // ==================== TRANSFER POINT MODAL ====================
-    function openTPModal() {
-        populateWaypointDropdowns();
-        document.getElementById('tpModal').classList.add('show');
-        document.getElementById('tpResult').classList.remove('show');
-    }
-
-    function openTPModalWithSelection(indexA, indexB) {
-        populateWaypointDropdowns();
-        document.getElementById('tpWaypointA').value = indexA;
-        document.getElementById('tpWaypointB').value = indexB;
-        document.getElementById('tpModal').classList.add('show');
-        updateTPPreview();
-    }
-
-    function closeTPModal() {
-        document.getElementById('tpModal').classList.remove('show');
-        lastTPResult = null;
-    }
-
-    function populateWaypointDropdowns() {
-        const rows = document.querySelectorAll("#navTable tbody tr");
-        const selectA = document.getElementById('tpWaypointA');
-        const selectB = document.getElementById('tpWaypointB');
-        
-        let optionsHTML = '<option value="">-- Select Waypoint --</option>';
-        
-        rows.forEach((row, i) => {
-            const name = row.querySelector('.wp-name').value || `WP ${i + 1}`;
-            optionsHTML += `<option value="${i}">${i + 1}. ${name}</option>`;
-        });
-        
-        selectA.innerHTML = optionsHTML;
-        selectB.innerHTML = optionsHTML;
-    }
-
-    function toggleTPInputs() {
-        const method = document.getElementById('tpMethod').value;
-        document.getElementById('tpFractionRow').style.display = method === 'fraction' ? 'block' : 'none';
-        document.getElementById('tpLatRow').style.display = method === 'lat' ? 'block' : 'none';
-        document.getElementById('tpLonRow').style.display = method === 'lon' ? 'block' : 'none';
-        updateTPPreview();
-    }
-
-    function updateTPPreview() {
-        const indexA = document.getElementById('tpWaypointA').value;
-        const indexB = document.getElementById('tpWaypointB').value;
-        
-        if (indexA === '' || indexB === '' || indexA === indexB) {
-            document.getElementById('tpResult').classList.remove('show');
-            return;
-        }
-        
-        const rows = document.querySelectorAll("#navTable tbody tr");
-        const rowA = rows[parseInt(indexA)];
-        const rowB = rows[parseInt(indexB)];
-        
-        const inputsA = rowA.querySelectorAll("input, select");
-        const inputsB = rowB.querySelectorAll("input, select");
-        
-        // Extract coordinates
-        const latA = dmsToDecimal(inputsA[2].value, inputsA[4].value, inputsA[3].value);
-        const lonA = dmsToDecimal(inputsA[5].value, inputsA[7].value, inputsA[6].value);
-        const latB = dmsToDecimal(inputsB[2].value, inputsB[4].value, inputsB[3].value);
-        const lonB = dmsToDecimal(inputsB[5].value, inputsB[7].value, inputsB[6].value);
-        
-        if (isNaN(latA) || isNaN(lonA) || isNaN(latB) || isNaN(lonB)) {
-            document.getElementById('tpResult').classList.remove('show');
-            return;
-        }
-        
-        const method = document.getElementById('tpMethod').value;
-        let result;
-        
-        if (method === 'fraction') {
-            const fraction = parseFloat(document.getElementById('tpFraction').value);
-            result = linearInterpolationByFraction(latA, lonA, latB, lonB, fraction);
-        } else if (method === 'lat') {
-            const targetLat = dmsToDecimal(
-                document.getElementById('tpTargetLatDeg').value,
-                document.getElementById('tpTargetLatMin').value,
-                document.getElementById('tpTargetLatDir').value
-            );
-            if (isNaN(targetLat)) return;
-            result = linearInterpolationByLat(latA, lonA, latB, lonB, targetLat);
-        } else {
-            const targetLon = dmsToDecimal(
-                document.getElementById('tpTargetLonDeg').value,
-                document.getElementById('tpTargetLonMin').value,
-                document.getElementById('tpTargetLonDir').value
-            );
-            if (isNaN(targetLon)) return;
-            result = linearInterpolationByLon(latA, lonA, latB, lonB, targetLon);
-        }
-        
-        if (result.error) {
-            document.getElementById('tpResultCoord').textContent = result.error;
-            document.getElementById('tpResult').classList.add('show');
-            return;
-        }
-        
-        // Store result
-        lastTPResult = {
-            lat: result.lat,
-            lon: result.lon,
-            insertAfter: Math.min(parseInt(indexA), parseInt(indexB))
-        };
-        
-        // Calculate distances
-        const distA = haversineDistance(latA, lonA, result.lat, result.lon);
-        const distB = haversineDistance(result.lat, result.lon, latB, lonB);
-        const course = calculateBearing(latA, lonA, latB, lonB);
-        
-        // Display
-        document.getElementById('tpResultCoord').innerHTML = 
-            `${formatCoordDMS(result.lat, true)}<br>${formatCoordDMS(result.lon, false)}`;
-        document.getElementById('tpDistA').textContent = distA.toFixed(2);
-        document.getElementById('tpDistB').textContent = distB.toFixed(2);
-        document.getElementById('tpCourse').textContent = course.toFixed(0).padStart(3, '0');
-        document.getElementById('tpResult').classList.add('show');
-    }
-
-    function insertTransferPoint() {
-        if (!lastTPResult) {
-            alert('Please calculate a transfer point first!');
-            return;
-        }
-        
-        const dms = decimalToDMS(lastTPResult.lat, lastTPResult.lon);
-        const newRow = addRow(lastTPResult.insertAfter);
-        const inputs = newRow.querySelectorAll("input, select");
-        
-        inputs[0].value = 'TP-' + (lastTPResult.insertAfter + 2);
-        inputs[2].value = dms.lat.deg;
-        inputs[3].value = dms.lat.dir;
-        inputs[4].value = dms.lat.min;
-        inputs[5].value = dms.lon.deg;
-        inputs[6].value = dms.lon.dir;
-        inputs[7].value = dms.lon.min;
-        inputs[9].value = 'Transfer Point';
-        
-        closeTPModal();
-        updateRowNumbers();
-        calculateAll();
-        triggerAutoSave();
-    }
-
-    // ==================== COORDINATE HELPERS ====================
-    function dmsToDecimal(deg, min, dir) {
-        const d = parseFloat(deg) || 0;
-        const m = parseFloat(min) || 0;
-        const decimal = d + (m / 60);
-        return (dir === 'S' || dir === 'W') ? -decimal : decimal;
-    }
-
-    function decimalToDMS(lat, lon) {
-        const latDeg = Math.floor(Math.abs(lat));
-        const latMin = ((Math.abs(lat) - latDeg) * 60).toFixed(3);
-        const latDir = lat >= 0 ? 'N' : 'S';
-        
-        const lonDeg = Math.floor(Math.abs(lon));
-        const lonMin = ((Math.abs(lon) - lonDeg) * 60).toFixed(3);
-        const lonDir = lon >= 0 ? 'E' : 'W';
-        
-        return {
-            lat: { deg: latDeg.toString().padStart(2, '0'), min: latMin.padStart(6, '0'), dir: latDir },
-            lon: { deg: lonDeg.toString().padStart(3, '0'), min: lonMin.padStart(6, '0'), dir: lonDir }
-        };
-    }
-
-    function formatCoordDMS(decimal, isLat) {
-        const deg = Math.floor(Math.abs(decimal));
-        const min = ((Math.abs(decimal) - deg) * 60).toFixed(3);
-        const dir = isLat ? (decimal >= 0 ? 'N' : 'S') : (decimal >= 0 ? 'E' : 'W');
-        const pad = isLat ? 2 : 3;
-        return `${deg.toString().padStart(pad, '0')}° ${min.padStart(6, '0')}' ${dir}`;
-    }
-
-    // ==================== LINEAR INTERPOLATION (Equator-optimized) ====================
-    function linearInterpolationByFraction(lat1, lon1, lat2, lon2, fraction) {
-        const lat = lat1 + (lat2 - lat1) * fraction;
-        const lon = lon1 + (lon2 - lon1) * fraction;
-        return { lat, lon, fraction };
-    }
-
-    function linearInterpolationByLat(lat1, lon1, lat2, lon2, targetLat) {
-        if ((targetLat < Math.min(lat1, lat2)) || (targetLat > Math.max(lat1, lat2))) {
-            return { error: 'Target latitude outside waypoint range!' };
-        }
-        
-        if (lat2 === lat1) {
-            return { error: 'Waypoints have same latitude!' };
-        }
-        
-        const fraction = (targetLat - lat1) / (lat2 - lat1);
-        const lon = lon1 + (lon2 - lon1) * fraction;
-        return { lat: targetLat, lon, fraction };
-    }
-
-    function linearInterpolationByLon(lat1, lon1, lat2, lon2, targetLon) {
-        if ((targetLon < Math.min(lon1, lon2)) || (targetLon > Math.max(lon1, lon2))) {
-            return { error: 'Target longitude outside waypoint range!' };
-        }
-        
-        if (lon2 === lon1) {
-            return { error: 'Waypoints have same longitude!' };
-        }
-        
-        const fraction = (targetLon - lon1) / (lon2 - lon1);
-        const lat = lat1 + (lat2 - lat1) * fraction;
-        return { lat, lon: targetLon, fraction };
-    }
-
-    // ==================== NAVIGATION CALCULATIONS ====================
-    function haversineDistance(lat1, lon1, lat2, lon2) {
-        const toRad = Math.PI / 180;
-        const dLat = (lat2 - lat1) * toRad;
-        const dLon = (lon2 - lon1) * toRad;
-        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*toRad) * Math.cos(lat2*toRad) * Math.sin(dLon/2)**2;
-        return 3440.065 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    }
-
-    function calculateBearing(lat1, lon1, lat2, lon2) {
-        const toRad = Math.PI / 180;
-        const toDeg = 180 / Math.PI;
-        const dLon = (lon2 - lon1) * toRad;
-        const y = Math.sin(dLon) * Math.cos(lat2 * toRad);
-        const x = Math.cos(lat1 * toRad) * Math.sin(lat2 * toRad) - Math.sin(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.cos(dLon);
-        return (Math.atan2(y, x) * toDeg + 360) % 360;
-    }
-
-    // ==================== CONFIRM MODAL ====================
-    function showConfirmModal(message, onConfirm) {
-        document.getElementById('confirmText').innerHTML = message;
-        document.getElementById('confirmYes').onclick = () => {
-            onConfirm();
-            closeConfirmModal();
-        };
-        document.getElementById('confirmModal').classList.add('show');
-    }
-
-    function closeConfirmModal() {
-        document.getElementById('confirmModal').classList.remove('show');
-    }
-
-    // ==================== CSV IMPORT/EXPORT ====================
-    function importCSV(input) {
-        const file = input.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const lines = e.target.result.split('\n');
-            const tbody = document.querySelector("#navTable tbody");
-            tbody.innerHTML = '';
-            
-            lines.forEach((line, i) => {
-                if (i === 0 || line.trim() === "") return;
-                const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                if (cols.length < 5) return;
-
-                const row = addRow();
-                const ins = row.querySelectorAll("input, select");
-                
-                ins[0].value = cols[1]?.replace(/"/g, "") || "";
-                ins[1].value = cols[2]?.replace(/"/g, "") || "";
-                
-                const latParts = (cols[3]?.replace(/"/g, "") || "").split(" ");
-                if (latParts.length >= 3) {
-                    ins[2].value = latParts[0];
-                    ins[4].value = latParts[1];
-                    ins[3].value = latParts[2];
-                }
-                
-                const lonParts = (cols[4]?.replace(/"/g, "") || "").split(" ");
-                if (lonParts.length >= 3) {
-                    ins[5].value = lonParts[0];
-                    ins[7].value = lonParts[1];
-                    ins[6].value = lonParts[2];
-                }
-                
-                ins[9].value = cols[7]?.replace(/"/g, "") || "";
-            });
-            
-            calculateAll();
-            triggerAutoSave();
-            input.value = "";
-        };
-        reader.readAsText(file);
-    }
-
-    function exportToCSV() {
-        let csv = "No,Nama WP,Chart Number,Latitude,Longitude,Course,Distance (NM),Remarks\n";
-        document.querySelectorAll("#navTable tbody tr").forEach((row, index) => {
-            const inputs = row.querySelectorAll("input, select");
-            const wpName = inputs[0].value || "-";
-            const chartNum = inputs[1].value || "-";
-            const lat = `${inputs[2].value} ${inputs[4].value} ${inputs[3].value}`;
-            const lon = `${inputs[5].value} ${inputs[7].value} ${inputs[6].value}`;
-            const dist = row.querySelector(".d-plan").innerText;
-            const crs = row.querySelector(".crs-val").innerText.replace("°", "").padStart(3,'0');
-            const remarks = inputs[9].value || "-";
-            csv += `${index + 1},"${wpName}","${chartNum}","${lat}","${lon}",${crs},${dist},"${remarks}"\n`;
-        });
-        
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const a = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        a.href = url;
-        a.download = `voyage_plan_${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-
-    // ==================== BEFORE UNLOAD WARNING ====================
-    window.addEventListener('beforeunload', function (e) {
-        saveToLocalStorage(false); // Silent save before leaving
-    });
-// ==================== FULLSCREEN MODE ====================
-function toggleFullscreen() {
-    const fsBtn = document.getElementById('fsBtn');
-    
-    if (!document.fullscreenElement && 
-        !document.webkitFullscreenElement && 
-        !document.msFullscreenElement) {
-        // Enter fullscreen
-        const elem = document.documentElement;
-        if (elem.requestFullscreen) {
-            elem.requestFullscreen();
-        } else if (elem.webkitRequestFullscreen) { // Safari
-            elem.webkitRequestFullscreen();
-        } else if (elem.msRequestFullscreen) { // IE/Edge
-            elem.msRequestFullscreen();
-        }
-        fsBtn.textContent = '⛶';
-        fsBtn.title = 'Exit Fullscreen';
-    } else {
-        // Exit fullscreen
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) { // Safari
-            document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) { // IE/Edge
-            document.msExitFullscreen();
-        }
-        fsBtn.textContent = '⛶';
-        fsBtn.title = 'Enter Fullscreen';
-    }
+// ══════════════════════════════════════════════
+//  CLOCK
+// ══════════════════════════════════════════════
+function startClock() {
+  function tick() {
+    const n = new Date();
+    const fmtL = `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;
+    document.getElementById('clkLT').textContent = fmtL;
+  }
+  tick(); setInterval(tick, 1000);
 }
 
-// Update button when fullscreen changes (e.g., user presses Escape)
-document.addEventListener('fullscreenchange', updateFsButton);
-document.addEventListener('webkitfullscreenchange', updateFsButton);
-document.addEventListener('msfullscreenchange', updateFsButton);
-
-function updateFsButton() {
-    const fsBtn = document.getElementById('fsBtn');
-    if (document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
-        fsBtn.textContent = '⛶';
-        fsBtn.title = 'Exit Fullscreen';
-    } else {
-        fsBtn.textContent = '⛶';
-        fsBtn.title = 'Enter Fullscreen';
+// ══════════════════════════════════════════════
+//  WAKE LOCK
+// ══════════════════════════════════════════════
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      document.addEventListener('visibilitychange', async () => {
+        if (wakeLock !== null && document.visibilityState === 'visible')
+          wakeLock = await navigator.wakeLock.request('screen');
+      });
     }
+  } catch(e) {}
 }
 
+// ══════════════════════════════════════════════
+//  ROUTE MANAGEMENT
+// ══════════════════════════════════════════════
+async function loadAllRoutes() {
+  try {
+    const all = await NavHubDB.getAllRoutes();
+    routes = {};
+    all.filter(r => r.id && r.id.toString().startsWith('pm_')).forEach(r => { routes[r.id] = r; });
+    const ids = Object.keys(routes);
+    if (ids.length === 0) {
+      await createNewRoute('Route 1');
+    } else {
+      // Load last active or first
+      let lastActive = null;
+      try { lastActive = await NavHubDB.getSetting('pm-active-route', null); } catch(e) {}
+      const loadId = (lastActive && routes[lastActive]) ? lastActive : ids[0];
+      await loadRoute(loadId);
+    }
+    renderRouteBar();
+  } catch(e) {
+    console.warn('NavHubDB unavailable, using fallback', e);
+    await createNewRoute('Route 1');
+  }
+}
+
+async function createNewRoute(name) {
+  const id = 'pm_' + Date.now();
+  const r = {
+    id, name,
+    note: '',
+    settings: { depDate:'', depTime:'', speed:'6.0', activeWaypoint: null },
+    waypoints: [],
+    savedAt: new Date().toISOString()
+  };
+  routes[id] = r;
+  currentRouteId = id;
+  try { await NavHubDB.saveRoute(r); } catch(e) {}
+  renderRouteBar();
+  resetTable();
+  addRow(); addRow(); addRow();
+  renderProgress();
+  return id;
+}
+
+async function newRoute() {
+  const name = 'Route ' + (Object.keys(routes).length + 1);
+  await createNewRoute(name);
+  toast('✓ ROUTE BARU: ' + name);
+}
+
+async function loadRoute(id) {
+  if (!routes[id]) return;
+  currentRouteId = id;
+  const r = routes[id];
+  try { await NavHubDB.saveSetting('pm-active-route', id); } catch(e) {}
+  // Restore settings
+  document.getElementById('depDate').value = r.settings?.depDate || '';
+  document.getElementById('depTime').value = r.settings?.depTime || '';
+  document.getElementById('shipSpeed').value = r.settings?.speed || '6.0';
+  activeRowIdx = r.settings?.activeWaypoint ?? null;
+  // Restore waypoints
+  resetTable();
+  if (r.waypoints && r.waypoints.length > 0) {
+    r.waypoints.forEach((wp, idx) => {
+      const row = addRow();
+      const ins = row.querySelectorAll('.t-in, .sel-dir');
+      ins[0].value = wp.name || '';
+      ins[1].value = wp.chartNo || '';
+      ins[2].value = wp.lat?.deg || '';
+      ins[3].value = wp.lat?.dir || 'N';
+      ins[4].value = wp.lat?.min || '';
+      ins[5].value = wp.lon?.deg || '';
+      ins[6].value = wp.lon?.dir || 'E';
+      ins[7].value = wp.lon?.min || '';
+      ins[8].value = wp.dtg || '';
+      ins[9].value = wp.remarks || '';
+      if (idx === activeRowIdx) row.classList.add('active-row');
+    });
+    calculateAll();
+  } else {
+    addRow(); addRow(); addRow();
+  }
+  renderRouteBar();
+  renderProgress();
+  document.getElementById('noteTA').value = r.note || '';
+  updateNoteCount();
+  updateRouteLabel();
+}
+
+async function saveCurrentRoute(showToast = false) {
+  if (!currentRouteId || !routes[currentRouteId]) return;
+  const r = routes[currentRouteId];
+  r.settings = {
+    depDate: document.getElementById('depDate').value,
+    depTime: document.getElementById('depTime').value,
+    speed: document.getElementById('shipSpeed').value,
+    activeWaypoint: activeRowIdx
+  };
+  r.waypoints = extractWaypoints();
+  r.savedAt = new Date().toISOString();
+  try {
+    await NavHubDB.saveRoute(r);
+    setSaveStatus(true);
+    if (showToast) toast('✓ ROUTE DISIMPAN');
+  } catch(e) {
+    setSaveStatus(false);
+  }
+}
+
+async function deleteRoute(id) {
+  if (Object.keys(routes).length <= 1) { toast('TIDAK BISA HAPUS ROUTE TERAKHIR'); return; }
+  delete routes[id];
+  try { await NavHubDB.deleteRoute(id); } catch(e) {}
+  const remaining = Object.keys(routes);
+  await loadRoute(remaining[0]);
+  renderRouteBar();
+  toast('ROUTE DIHAPUS');
+}
+
+function renderRouteBar() { /* route bar dihapus, akses via tombol ROUTES */ }
+
+function startAutoSave() {
+  if (autoSaveInterval) clearInterval(autoSaveInterval);
+  autoSaveInterval = setInterval(() => saveCurrentRoute(false), 5 * 60 * 1000); // 5 menit
+}
+
+function triggerAutoSave() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => saveCurrentRoute(false), 2000);
+}
+
+function setSaveStatus(ok) {
+  document.getElementById('saveDot').classList.toggle('warn', !ok);
+  document.getElementById('saveTxt').textContent = ok ? 'AUTO-SAVE: ON' : 'SAVE FAILED!';
+}
+
+// ══════════════════════════════════════════════
+//  VOYAGE NOTE
+// ══════════════════════════════════════════════
+function openNote() {
+  if (!currentRouteId || !routes[currentRouteId]) return;
+  document.getElementById('noteTA').value = routes[currentRouteId].note || '';
+  updateNoteCount();
+  document.getElementById('noteOverlay').classList.add('show');
+}
+function closeNoteBtn() { document.getElementById('noteOverlay').classList.remove('show'); }
+function closeNote(e) { if (e.target === document.getElementById('noteOverlay')) closeNoteBtn(); }
+function updateNoteCount() {
+  const v = document.getElementById('noteTA').value.length;
+  document.getElementById('noteChars').textContent = v + ' / 2000';
+}
+async function saveNote() {
+  if (!currentRouteId || !routes[currentRouteId]) return;
+  routes[currentRouteId].note = document.getElementById('noteTA').value;
+  await saveCurrentRoute(false);
+  toast('✓ NOTE DISIMPAN');
+  closeNoteBtn();
+}
+
+// ══════════════════════════════════════════════
+//  ROUTES OVERLAY
+// ══════════════════════════════════════════════
+function toggleRoutesDrop(e) {
+  if (e) e.stopPropagation();
+  const drop = document.getElementById('routesDrop');
+  if (drop.classList.contains('show')) { closeRoutesDrop(); return; }
+  renderRoutesDrop();
+  const btn = document.getElementById('routesBtn');
+  const rect = btn.getBoundingClientRect();
+  drop.style.top = (rect.bottom + 4) + 'px';
+  drop.style.right = (window.innerWidth - rect.right) + 'px';
+  drop.style.left = 'auto';
+  drop.classList.add('show');
+}
+
+function closeRoutesDrop() {
+  document.getElementById('routesDrop').classList.remove('show');
+  // Tutup semua rename yang terbuka
+  document.querySelectorAll('.rdrop-rename.show').forEach(el => el.classList.remove('show'));
+  document.querySelectorAll('.rdrop-item').forEach(el => el.style.display = '');
+}
+
+function renderRoutesDrop() {
+  const list = document.getElementById('routesDropList');
+  const rts = Object.values(routes).sort((a,b) => (b.savedAt||'').localeCompare(a.savedAt||''));
+  if (!rts.length) { list.innerHTML = '<div style="padding:8px 6px;font-family:var(--fmono);font-size:9px;color:var(--muted);">Belum ada route</div>'; return; }
+  list.innerHTML = rts.map(r => {
+    const wc = r.waypoints?.length || 0;
+    const isActive = r.id === currentRouteId;
+    return `
+    <div class="rdrop-item ${isActive?'active':''}" id="rdi-${r.id}">
+      <div class="rdrop-name" onclick="selectRoute('${r.id}')">${isActive?'▶ ':''}${r.name}<div style="font-size:8px;color:var(--muted);margin-top:1px;">${wc} WP</div></div>
+      <button class="rdrop-edit" onclick="startRename('${r.id}')" title="Rename">✎</button>
+      <button class="rdrop-del" onclick="confirmDeleteRoute('${r.id}')" title="Hapus">✕</button>
+    </div>
+    <div class="rdrop-rename" id="rdr-${r.id}">
+      <input class="rdrop-rename-in" id="rin-${r.id}" value="${r.name}" maxlength="40"
+        onkeydown="if(event.key==='Enter')commitRename('${r.id}');if(event.key==='Escape')cancelRename('${r.id}')">
+      <button class="rdrop-rename-ok" onclick="commitRename('${r.id}')">OK</button>
+    </div>`;
+  }).join('');
+}
+
+function selectRoute(id) {
+  loadRoute(id);
+  closeRoutesDrop();
+}
+
+function startRename(id) {
+  document.getElementById('rdi-' + id).style.display = 'none';
+  const renEl = document.getElementById('rdr-' + id);
+  renEl.classList.add('show');
+  const inp = document.getElementById('rin-' + id);
+  inp.focus(); inp.select();
+}
+
+function cancelRename(id) {
+  document.getElementById('rdi-' + id).style.display = '';
+  document.getElementById('rdr-' + id).classList.remove('show');
+}
+
+async function commitRename(id) {
+  const val = document.getElementById('rin-' + id).value.trim();
+  if (!val) { cancelRename(id); return; }
+  if (!routes[id]) return;
+  routes[id].name = val;
+  await saveCurrentRoute(false);
+  // Juga save route yang di-rename kalau bukan current
+  if (id !== currentRouteId) {
+    try { await NavHubDB.saveRoute(routes[id]); } catch(e) {}
+  }
+  // Update label header
+  updateRouteLabel();
+  // Re-render drop
+  renderRoutesDrop();
+  toast('✓ NAMA DIUBAH: ' + val);
+}
+
+function updateRouteLabel() {
+  const lbl = document.getElementById('routeActiveLabel');
+  if (!lbl) return;
+  const name = routes[currentRouteId]?.name || 'ROUTES';
+  lbl.textContent = name.length > 12 ? name.substring(0,12)+'…' : name;
+}
+
+// Tutup dropdown saat klik di luar
+document.addEventListener('click', e => {
+  if (!e.target.closest('#routeDropWrap')) closeRoutesDrop();
+});
+
+// ══════════════════════════════════════════════
+//  ROUTES OVERLAY (legacy - keep for confirmDelete)
+// ══════════════════════════════════════════════
+function openRoutes() { toggleRoutesDrop(); }
+function closeRoutesBtn() { closeRoutesDrop(); }
+function closeRoutes(e) {}
+function renderRoutesList() {}
+
+function confirmDeleteRoute(id) {
+  const r = routes[id];
+  if (!r) return;
+  closeRoutesDrop();
+  showConfirm(`Hapus route <strong style="color:var(--danger)">${r.name}</strong>?<br><small>Aksi ini tidak bisa dibatalkan.</small>`, () => deleteRoute(id));
+}
+
+// ══════════════════════════════════════════════
+//  GPS
+// ══════════════════════════════════════════════
+function toggleGPS() {
+  if (gpsActive) stopGPS();
+  else startGPS();
+}
+
+function startGPS() {
+  if (!navigator.geolocation) { toast('GPS TIDAK TERSEDIA'); return; }
+  const btn = document.getElementById('gpsBtn');
+  btn.className = 'hbtn gps-searching';
+  btn.textContent = '📡 SEARCHING...';
+  gpsWatchId = navigator.geolocation.watchPosition(
+    pos => {
+      gpsActive = true;
+      lastGPS = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy };
+      updateGPSDisplay();
+      updateDTGFromGPS();
+      btn.className = 'hbtn gps-on';
+      btn.textContent = '📡 GPS ON';
+    },
+    err => {
+      toast('GPS ERROR: ' + err.message.substring(0,30));
+      btn.className = 'hbtn';
+      btn.textContent = '📡 GPS';
+      gpsActive = false;
+    },
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+  );
+}
+
+function stopGPS() {
+  if (gpsWatchId !== null) navigator.geolocation.clearWatch(gpsWatchId);
+  gpsWatchId = null; gpsActive = false; lastGPS = null;
+  document.getElementById('gpsBtn').className = 'hbtn';
+  document.getElementById('gpsBtn').textContent = '📡 GPS';
+  document.getElementById('gpsBadge').classList.remove('show');
+  toast('GPS OFF');
+}
+
+function updateGPSDisplay() {
+  if (!lastGPS) return;
+  document.getElementById('gpsBadge').classList.add('show');
+  document.getElementById('gpsLat').textContent = fmtCoordStr(lastGPS.lat, true);
+  document.getElementById('gpsLon').textContent = fmtCoordStr(lastGPS.lon, false);
+  document.getElementById('gpsAcc').textContent = 'ACC: ±' + Math.round(lastGPS.acc) + 'm';
+}
+
+function updateDTGFromGPS() {
+  if (!lastGPS || activeRowIdx === null) return;
+  const rows = document.querySelectorAll('#tbody tr');
+  const row = rows[activeRowIdx];
+  if (!row) return;
+  const ins = row.querySelectorAll('.t-in, .sel-dir');
+  const latDeg = parseFloat(ins[2].value||0), latMin = parseFloat(ins[4].value||0);
+  const lonDeg = parseFloat(ins[5].value||0), lonMin = parseFloat(ins[7].value||0);
+  const latDir = ins[3].value, lonDir = ins[6].value;
+  const wpLat = (latDeg + latMin/60) * (latDir==='S'?-1:1);
+  const wpLon = (lonDeg + lonMin/60) * (lonDir==='W'?-1:1);
+  if (!wpLat && !wpLon) return;
+  const dtg = haversine(lastGPS.lat, lastGPS.lon, wpLat, wpLon);
+  const dtgIn = row.querySelector('.in-dtg');
+  if (dtgIn) { dtgIn.value = dtg.toFixed(2); calculateAll(); }
+}
+
+function fmtCoordStr(val, isLat) {
+  const deg = Math.floor(Math.abs(val));
+  const min = ((Math.abs(val) - deg) * 60).toFixed(3);
+  const dir = isLat ? (val>=0?'N':'S') : (val>=0?'E':'W');
+  const pad = isLat ? 2 : 3;
+  return `${deg.toString().padStart(pad,'0')}° ${min.padStart(6,'0')}' ${dir}`;
+}
+
+// ══════════════════════════════════════════════
+//  TABLE
+// ══════════════════════════════════════════════
+function resetTable() {
+  document.getElementById('tbody').innerHTML = '';
+  activeRowIdx = null;
+}
+
+function addRow(insertAfter = null) {
+  const tbody = document.getElementById('tbody');
+  let row;
+  if (insertAfter !== null && insertAfter < tbody.rows.length) {
+    row = tbody.insertRow(insertAfter + 1);
+  } else {
+    row = tbody.insertRow();
+  }
+  row.draggable = true;
+  row.innerHTML = `
+    <td class="td-act"><button class="go-btn" onclick="setActive(this)">GO</button></td>
+    <td class="td-no drag-handle">—</td>
+    <td><input class="t-in in-name" placeholder="WAYPOINT"></td>
+    <td><input class="t-in in-chart" placeholder="—"></td>
+    <td><div class="ll-wrap">
+      <div class="ll-row"><input class="t-in in-deg" type="number" placeholder="00" onblur="fmtCoord(this,'deg','lat')">
+        <select class="sel-dir" onchange="calculateAll();triggerAutoSave();"><option>N</option><option>S</option></select></div>
+      <div class="ll-row"><input class="t-in in-min" type="number" step="0.001" placeholder="00.000" onblur="fmtCoord(this,'min','lat')"></div>
+    </div></td>
+    <td><div class="ll-wrap">
+      <div class="ll-row"><input class="t-in in-deg" type="number" placeholder="000" onblur="fmtCoord(this,'deg','lon')">
+        <select class="sel-dir" onchange="calculateAll();triggerAutoSave();"><option>E</option><option>W</option></select></div>
+      <div class="ll-row"><input class="t-in in-min" type="number" step="0.001" placeholder="00.000" onblur="fmtCoord(this,'min','lon')"></div>
+    </div></td>
+    <td class="cell-dist">—</td>
+    <td><input class="t-in in-dtg" type="number" placeholder="0.0" oninput="calculateAll();triggerAutoSave();checkDTGAlerts()"></td>
+    <td class="cell-crs">—</td>
+    <td><input class="t-in in-rem" placeholder="—"></td>
+    <td class="cell-eta">—</td>`;
+  // Input listeners
+  row.querySelectorAll('.t-in').forEach(inp => inp.addEventListener('input', () => triggerAutoSave()));
+  addDragEvents(row);
+  addCtxMenu(row);
+  updateRowNums();
+  return row;
+}
+
+function updateRowNums() {
+  document.querySelectorAll('#tbody tr').forEach((r, i) => { r.cells[1].textContent = i + 1; });
+}
+
+function setActive(btn) {
+  const row = btn.closest('tr');
+  document.querySelectorAll('#tbody tr').forEach(r => r.classList.remove('active-row'));
+  row.classList.add('active-row');
+  activeRowIdx = Array.from(row.parentNode.children).indexOf(row);
+  setDepNow();
+  triggerAutoSave();
+  renderProgress();
+}
+
+function confirmDelRow() {
+  const tbody = document.getElementById('tbody');
+  if (!tbody.rows.length) return;
+  const last = tbody.rows[tbody.rows.length - 1];
+  const nm = last.querySelector('.in-name')?.value || 'WP terakhir';
+  showConfirm(`Hapus <strong style="color:var(--danger)">${nm}</strong>?`, () => {
+    tbody.deleteRow(-1); updateRowNums(); calculateAll(); triggerAutoSave();
+  });
+}
+
+function reverseWPs() {
+  showConfirm('Balik urutan semua waypoint?', () => {
+    const tbody = document.getElementById('tbody');
+    Array.from(tbody.rows).reverse().forEach(r => tbody.appendChild(r));
+    updateRowNums(); calculateAll(); triggerAutoSave();
+  });
+}
+
+// ══════════════════════════════════════════════
+//  DRAG & DROP
+// ══════════════════════════════════════════════
+function addDragEvents(row) {
+  row.addEventListener('dragstart', () => row.classList.add('dragging'));
+  row.addEventListener('dragend', () => {
+    row.classList.remove('dragging');
+    updateRowNums(); calculateAll(); triggerAutoSave();
+  });
+}
+
+const tbody = document.getElementById('tbody');
+tbody.addEventListener('dragover', e => {
+  e.preventDefault();
+  const after = getDragAfter(tbody, e.clientY);
+  const dragging = document.querySelector('.dragging');
+  if (!dragging) return;
+  if (after == null) tbody.appendChild(dragging);
+  else tbody.insertBefore(dragging, after);
+});
+
+function getDragAfter(container, y) {
+  return [...container.querySelectorAll('tr:not(.dragging)')].reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    return (offset < 0 && offset > closest.offset) ? { offset, element: child } : closest;
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+// ══════════════════════════════════════════════
+//  CONTEXT MENU
+// ══════════════════════════════════════════════
+function addCtxMenu(row) {
+  row.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    const idx = Array.from(row.parentNode.children).indexOf(row);
+    showCtxMenu(e.clientX, e.clientY, idx);
+  });
+}
+
+function showCtxMenu(x, y, idx) {
+  const rows = document.querySelectorAll('#tbody tr');
+  const hasNext = idx < rows.length - 1;
+  const menu = document.getElementById('ctxMenu');
+  menu.innerHTML = `
+    <div class="ctx-item" onclick="addRow(${idx});hideCtxMenu()">➕ Insert Row After</div>
+    <div class="ctx-item" onclick="duplicateRow(${idx});hideCtxMenu()">📋 Duplicate Row</div>
+    ${hasNext ? `<div class="ctx-sep"></div><div class="ctx-item" onclick="openTPWithSel(${idx},${idx+1});hideCtxMenu()">📐 Transfer Point → WP${idx+2}</div>` : ''}
+    <div class="ctx-sep"></div>
+    <div class="ctx-item danger" onclick="removeRow(${idx});hideCtxMenu()">🗑 Delete Row</div>`;
+  menu.style.left = Math.min(x, window.innerWidth - 200) + 'px';
+  menu.style.top = Math.min(y, window.innerHeight - 200) + 'px';
+  menu.style.display = 'block';
+}
+
+function hideCtxMenu() { document.getElementById('ctxMenu').style.display = 'none'; }
+
+function removeRow(idx) {
+  const tbody = document.getElementById('tbody');
+  const row = tbody.rows[idx];
+  const nm = row?.querySelector('.in-name')?.value || 'WP ' + (idx+1);
+  showConfirm(`Hapus <strong style="color:var(--danger)">${nm}</strong>?`, () => {
+    tbody.deleteRow(idx); updateRowNums(); calculateAll(); triggerAutoSave();
+  });
+}
+
+function duplicateRow(idx) {
+  const tbody = document.getElementById('tbody');
+  const src = tbody.rows[idx];
+  const srcIns = src.querySelectorAll('.t-in, .sel-dir');
+  const newRow = addRow(idx);
+  const newIns = newRow.querySelectorAll('.t-in, .sel-dir');
+  newIns[0].value = srcIns[0].value + ' (copy)';
+  for (let i = 1; i < Math.min(srcIns.length, newIns.length); i++) newIns[i].value = srcIns[i].value;
+  calculateAll();
+}
+
+function insertRowAfter(idx) { addRow(idx); calculateAll(); }
+
+// ══════════════════════════════════════════════
+//  CALCULATIONS
+// ══════════════════════════════════════════════
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 3440.065, toRad = Math.PI / 180;
+  const dLat = (lat2-lat1)*toRad, dLon = (lon2-lon1)*toRad;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*toRad)*Math.cos(lat2*toRad)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function bearing(lat1, lon1, lat2, lon2) {
+  const toRad = Math.PI/180, toDeg = 180/Math.PI;
+  const dLon = (lon2-lon1)*toRad;
+  const y = Math.sin(dLon)*Math.cos(lat2*toRad);
+  const x = Math.cos(lat1*toRad)*Math.sin(lat2*toRad) - Math.sin(lat1*toRad)*Math.cos(lat2*toRad)*Math.cos(dLon);
+  return (Math.atan2(y,x)*toDeg+360)%360;
+}
+
+function getCoord(ins, offset) {
+  // ins = flat array of t-in + sel-dir from row
+  // lat: ins[2]=deg, ins[3]=dir, ins[4]=min
+  // lon: ins[5]=deg, ins[6]=dir, ins[7]=min
+  const d = parseFloat(ins[offset].value||0);
+  const m = parseFloat(ins[offset+2].value||0);
+  const dir = ins[offset+1].value;
+  const dec = d + m/60;
+  return (dir==='S'||dir==='W') ? -dec : dec;
+}
+
+function calculateAll() {
+  const rows = document.querySelectorAll('#tbody tr');
+  const speed = parseFloat(document.getElementById('shipSpeed').value) || 1;
+  const dDate = document.getElementById('depDate').value;
+  const dTime = document.getElementById('depTime').value;
+  let totalRem = 0, hours = 0;
+
+  for (let i = 0; i < rows.length; i++) {
+    const ins = rows[i].querySelectorAll('.t-in, .sel-dir');
+    if (i > 0) {
+      const pIns = rows[i-1].querySelectorAll('.t-in, .sel-dir');
+      const lat1 = getCoord(pIns, 2), lon1 = getCoord(pIns, 5);
+      const lat2 = getCoord(ins, 2), lon2 = getCoord(ins, 5);
+      const d = haversine(lat1, lon1, lat2, lon2);
+      const c = bearing(lat1, lon1, lat2, lon2);
+      rows[i].querySelector('.cell-dist').textContent = d.toFixed(2);
+      rows[i].querySelector('.cell-crs').textContent = Math.round(c).toString().padStart(3,'0') + '°';
+    } else {
+      rows[i].querySelector('.cell-dist').textContent = '0.00';
+      rows[i].querySelector('.cell-crs').textContent = '—';
+    }
+
+    if (activeRowIdx !== null && i >= activeRowIdx) {
+      const dtgVal = rows[i].querySelector('.in-dtg').value;
+      const v = (i === activeRowIdx && dtgVal !== '') ? parseFloat(dtgVal) : parseFloat(rows[i].querySelector('.cell-dist').textContent) || 0;
+      hours += v / speed;
+      totalRem += v;
+    }
+
+    if (dDate && dTime && (activeRowIdx === null || i >= activeRowIdx)) {
+      const dep = new Date(dDate + 'T' + dTime);
+      const eta = new Date(dep.getTime() + hours * 3600000);
+      rows[i].querySelector('.cell-eta').textContent = eta.toLocaleString('en-GB', {
+        day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:false
+      });
+    } else {
+      rows[i].querySelector('.cell-eta').textContent = '—';
+    }
+  }
+
+  document.getElementById('totalDist').textContent = totalRem.toFixed(2);
+  document.getElementById('totalTime').textContent = hours.toFixed(1);
+
+  if (dDate && dTime) {
+    const dep = new Date(dDate + 'T' + dTime);
+    const final = new Date(dep.getTime() + hours * 3600000);
+    document.getElementById('etaDisplay').textContent = final.toLocaleString('en-GB', {
+      day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:false
+    });
+  }
+
+  checkDTGAlerts();
+  renderProgress();
+}
+
+function checkDTGAlerts() {
+  document.querySelectorAll('#tbody tr').forEach(row => {
+    const dtg = parseFloat(row.querySelector('.in-dtg')?.value);
+    row.classList.remove('dtg-warn','dtg-crit');
+    if (!isNaN(dtg) && dtg > 0) {
+      if (dtg <= 1) row.classList.add('dtg-crit');
+      else if (dtg <= 5) row.classList.add('dtg-warn');
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+//  PROGRESS BAR
+// ══════════════════════════════════════════════
+function renderProgress() {
+  const wrap = document.getElementById('progWrap');
+  if (activeRowIdx === null) { wrap.classList.remove('show'); return; }
+  const rows = document.querySelectorAll('#tbody tr');
+  if (rows.length < 2) { wrap.classList.remove('show'); return; }
+  wrap.classList.add('show');
+
+  // Total distance (all legs)
+  let total = 0;
+  for (let i = 1; i < rows.length; i++) {
+    total += parseFloat(rows[i].querySelector('.cell-dist')?.textContent) || 0;
+  }
+  // Sailed = sum of legs before activeRowIdx
+  let sailed = 0;
+  for (let i = 1; i <= activeRowIdx && i < rows.length; i++) {
+    sailed += parseFloat(rows[i].querySelector('.cell-dist')?.textContent) || 0;
+  }
+  // Current DTG deduction
+  const curDTG = parseFloat(rows[activeRowIdx].querySelector('.in-dtg')?.value);
+  const legDist = activeRowIdx < rows.length - 1
+    ? parseFloat(rows[activeRowIdx + 1]?.querySelector('.cell-dist')?.textContent) || 0 : 0;
+  if (!isNaN(curDTG) && legDist > 0) sailed += (legDist - curDTG);
+
+  const pct = total > 0 ? Math.min(100, Math.max(0, (sailed / total) * 100)) : 0;
+  document.getElementById('progFill').style.width = pct.toFixed(1) + '%';
+  document.getElementById('progPct').textContent = Math.round(pct) + '%';
+
+  const fromWP = rows[0].querySelector('.in-name')?.value || 'WP1';
+  const toWP = rows[rows.length-1].querySelector('.in-name')?.value || 'WP' + rows.length;
+  document.getElementById('progFrom').textContent = fromWP;
+  document.getElementById('progTo').textContent = toWP;
+}
+
+// ══════════════════════════════════════════════
+//  COORD FORMATTING
+// ══════════════════════════════════════════════
+function fmtCoord(input, type, coordType) {
+  let num = parseFloat(input.value) || 0;
+  if (type === 'deg') {
+    if (coordType === 'lat' && num > 90) num = 90;
+    if (coordType === 'lon' && num > 180) num = 180;
+    if (num < 0) num = 0;
+    input.value = Math.floor(num).toString().padStart(coordType === 'lon' ? 3 : 2, '0');
+  } else {
+    if (num >= 60) num = 59.999;
+    if (num < 0) num = 0;
+    input.value = num.toFixed(3).padStart(6, '0');
+  }
+  calculateAll(); triggerAutoSave();
+}
+
+// ══════════════════════════════════════════════
+//  DEPARTURE
+// ══════════════════════════════════════════════
+function setDepNow() {
+  const n = new Date();
+  document.getElementById('depDate').value = n.toISOString().split('T')[0];
+  document.getElementById('depTime').value = n.toTimeString().substring(0,5);
+  calculateAll(); triggerAutoSave();
+}
+
+function toggleMore(e) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById('moreMenu');
+  if (menu.classList.contains('show')) {
+    menu.classList.remove('show');
+    return;
+  }
+  const btn = document.querySelector('#moreWrap > .dbtn');
+  const rect = btn.getBoundingClientRect();
+  menu.style.top = (rect.bottom + 4) + 'px';
+  menu.style.left = rect.left + 'px';
+  menu.classList.add('show');
+}
+// Close more menu saat klik di luar
+document.addEventListener('click', e => {
+  if (!e.target.closest('#moreWrap')) document.getElementById('moreMenu').classList.remove('show');
+});
+
+// ══════════════════════════════════════════════
+//  EXTRACT WAYPOINTS
+// ══════════════════════════════════════════════
+function extractWaypoints() {
+  const wps = [];
+  document.querySelectorAll('#tbody tr').forEach(row => {
+    const ins = row.querySelectorAll('.t-in, .sel-dir');
+    wps.push({
+      name: ins[0]?.value || '',
+      chartNo: ins[1]?.value || '',
+      lat: { deg: ins[2]?.value||'', dir: ins[3]?.value||'N', min: ins[4]?.value||'' },
+      lon: { deg: ins[5]?.value||'', dir: ins[6]?.value||'E', min: ins[7]?.value||'' },
+      dtg: ins[8]?.value || '',
+      remarks: ins[9]?.value || ''
+    });
+  });
+  return wps;
+}
+
+function wpsToLatLon(wps) {
+  return wps.map(wp => {
+    const latDeg = parseFloat(wp.lat.deg||0), latMin = parseFloat(wp.lat.min||0);
+    const lonDeg = parseFloat(wp.lon.deg||0), lonMin = parseFloat(wp.lon.min||0);
+    const lat = (latDeg + latMin/60) * (wp.lat.dir==='S'?-1:1);
+    const lon = (lonDeg + lonMin/60) * (wp.lon.dir==='W'?-1:1);
+    return { name: wp.name, lat, lon };
+  }).filter(wp => wp.lat !== 0 || wp.lon !== 0);
+}
+
+// ══════════════════════════════════════════════
+//  GPX EXPORT / IMPORT
+// ══════════════════════════════════════════════
+function downloadGPXFile(gpxStr, fileName) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([gpxStr], { type:'application/gpx+xml' }));
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function exportGPXCurrent() {
+  const wps = wpsToLatLon(extractWaypoints());
+  if (!wps.length) { toast('TIDAK ADA WAYPOINT'); return; }
+  const routeName = routes[currentRouteId]?.name || 'NavHub Passage';
+  const gpxId = currentRouteId; // pakai id route sebagai GPX slot
+  const fileName = `${routeName.replace(/\s+/g,'_')}_${new Date().toISOString().split('T')[0]}.gpx`;
+  const gpxStr = NavHubDB.generateGPXString(wps, routeName);
+  try {
+    await NavHubDB.saveGPX(gpxId, {
+      fileName,
+      waypoints: wps,
+      trackPoints: wps.map(w => ({ lat:w.lat, lon:w.lon })),
+      rawGPX: gpxStr,
+      routeName
+    });
+    NavHubDB.notifyParent('nh-gpx-saved');
+  } catch(e) {}
+  downloadGPXFile(gpxStr, fileName);
+  toast('⬇ GPX: ' + routeName);
+}
+
+async function exportGPXBulk() {
+  const allRoutes = Object.values(routes);
+  if (!allRoutes.length) { toast('TIDAK ADA ROUTE'); return; }
+  let downloaded = 0;
+  for (const r of allRoutes) {
+    const wps = wpsToLatLon(r.waypoints || []);
+    if (!wps.length) continue;
+    const fileName = `${r.name.replace(/\s+/g,'_')}_${new Date().toISOString().split('T')[0]}.gpx`;
+    const gpxStr = NavHubDB.generateGPXString(wps, r.name);
+    try {
+      await NavHubDB.saveGPX(r.id, {
+        fileName, routeName: r.name,
+        waypoints: wps,
+        trackPoints: wps.map(w => ({ lat:w.lat, lon:w.lon })),
+        rawGPX: gpxStr
+      });
+    } catch(e) {}
+    downloadGPXFile(gpxStr, fileName);
+    downloaded++;
+    await new Promise(res => setTimeout(res, 200));
+  }
+  try { NavHubDB.notifyParent('nh-gpx-saved'); } catch(e) {}
+  toast(`⬇ ${downloaded} FILE GPX DIDOWNLOAD & DISIMPAN`);
+}
+
+// legacy alias
+async function exportGPX() { await exportGPXCurrent(); }
+
+async function importGPXFromNavHub() {
+  let all;
+  try { all = await NavHubDB.getAllGPX(); } catch(e) { toast('NAVHUB DB TIDAK TERSEDIA'); return; }
+  // Filter hanya yang punya waypoints
+  const valid = (all||[]).filter(r => r.waypoints?.length || r.trackPoints?.length);
+  if (!valid.length) { toast('TIDAK ADA GPX DI NAVHUB'); return; }
+
+  // Buat picker overlay sederhana
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:8000;background:rgba(4,16,28,.92);backdrop-filter:blur(6px);display:flex;align-items:flex-end;';
+  const sheet = document.createElement('div');
+  sheet.style.cssText = 'width:100%;max-height:70vh;background:var(--panel);border-top:2px solid var(--border2);border-radius:16px 16px 0 0;display:flex;flex-direction:column;animation:slideUp .25s ease;';
+  sheet.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <span style="font-family:var(--fhud);font-size:20px;letter-spacing:2px;color:var(--accent);flex:1;">📡 PILIH GPX NAVHUB</span>
+      <button onclick="this.closest('[data-gpxpicker]').remove()" style="width:30px;height:30px;background:transparent;border:1px solid var(--border2);border-radius:7px;color:var(--muted2);cursor:pointer;font-size:14px;">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:8px 14px;">
+      ${valid.map(rec => {
+        const wc = rec.waypoints?.length || rec.trackPoints?.length || 0;
+        const name = rec.routeName || rec.fileName || rec.id;
+        const d = rec.savedAt ? new Date(rec.savedAt).toLocaleDateString('id-ID',{day:'2-digit',month:'short'}) : '';
+        return `<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="loadGPXSlot('${rec.id}');this.closest('[data-gpxpicker]').remove()">
+          <div style="flex:1;">
+            <div style="font-family:var(--fmono);font-size:11px;color:var(--text);font-weight:600;">${name}</div>
+            <div style="font-family:var(--fmono);font-size:9px;color:var(--muted2);margin-top:2px;">${wc} waypoint${d?' · '+d:''}</div>
+          </div>
+          <span style="font-family:var(--fmono);font-size:9px;color:var(--accent);padding:4px 10px;border:1px solid var(--accent);border-radius:20px;">LOAD</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  overlay.setAttribute('data-gpxpicker','');
+  overlay.appendChild(sheet);
+  overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+async function loadGPXSlot(id) {
+  let rec;
+  try { rec = await NavHubDB.getGPX(id); } catch(e) { toast('GAGAL LOAD GPX'); return; }
+  if (!rec) { toast('DATA TIDAK DITEMUKAN'); return; }
+  const src = rec.waypoints?.length ? rec.waypoints
+    : rec.trackPoints?.map((p,i) => ({ name:'T'+(i+1), lat:p.lat, lon:p.lon })) || [];
+  if (!src.length) { toast('DATA GPX KOSONG'); return; }
+  showConfirm(
+    `Load <strong style="color:var(--accent)">${rec.routeName||rec.fileName||id}</strong><br>
+     <small>${src.length} waypoint akan menggantikan tabel saat ini.</small>`,
+    () => {
+      resetTable();
+      src.forEach(wp => {
+        const row = addRow();
+        const ins = row.querySelectorAll('.t-in, .sel-dir');
+        ins[0].value = wp.name || '';
+        const lat = Math.abs(wp.lat);
+        ins[2].value = Math.floor(lat).toString().padStart(2,'0');
+        ins[3].value = wp.lat >= 0 ? 'N' : 'S';
+        ins[4].value = ((lat - Math.floor(lat)) * 60).toFixed(3).padStart(6,'0');
+        const lon = Math.abs(wp.lon);
+        ins[5].value = Math.floor(lon).toString().padStart(3,'0');
+        ins[6].value = wp.lon >= 0 ? 'E' : 'W';
+        ins[7].value = ((lon - Math.floor(lon)) * 60).toFixed(3).padStart(6,'0');
+      });
+      calculateAll(); triggerAutoSave();
+      toast(`✓ ${src.length} WP LOADED`);
+    }
+  );
+}
+
+// ══════════════════════════════════════════════
+//  CSV IMPORT / EXPORT
+// ══════════════════════════════════════════════
+function importCSV(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n');
+    resetTable();
+    lines.forEach((line, i) => {
+      if (i === 0 || !line.trim()) return;
+      const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+      if (cols.length < 5) return;
+      const row = addRow();
+      const ins = row.querySelectorAll('.t-in, .sel-dir');
+      ins[0].value = cols[1]?.replace(/"/g,'') || '';
+      ins[1].value = cols[2]?.replace(/"/g,'') || '';
+      const latP = (cols[3]?.replace(/"/g,'')||'').split(' ');
+      if (latP.length >= 3) { ins[2].value=latP[0]; ins[4].value=latP[1]; ins[3].value=latP[2]; }
+      const lonP = (cols[4]?.replace(/"/g,'')||'').split(' ');
+      if (lonP.length >= 3) { ins[5].value=lonP[0]; ins[7].value=lonP[1]; ins[6].value=lonP[2]; }
+      ins[9].value = cols[7]?.replace(/"/g,'') || '';
+    });
+    calculateAll(); triggerAutoSave(); input.value='';
+    toast('✓ CSV IMPORTED');
+  };
+  reader.readAsText(file);
+}
+
+function exportCSV() {
+  let csv = 'No,Nama WP,Chart No,Latitude,Longitude,Course,Dist (NM),Remarks\n';
+  document.querySelectorAll('#tbody tr').forEach((row, i) => {
+    const ins = row.querySelectorAll('.t-in, .sel-dir');
+    const lat = `${ins[2].value} ${ins[4].value} ${ins[3].value}`;
+    const lon = `${ins[5].value} ${ins[7].value} ${ins[6].value}`;
+    const dist = row.querySelector('.cell-dist')?.textContent || '0';
+    const crs = row.querySelector('.cell-crs')?.textContent?.replace('°','').padStart(3,'0') || '000';
+    csv += `${i+1},"${ins[0].value}","${ins[1].value}","${lat}","${lon}",${crs},${dist},"${ins[9].value}"\n`;
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv' }));
+  a.download = `passage_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+}
+
+// ══════════════════════════════════════════════
+//  TRANSFER POINT
+// ══════════════════════════════════════════════
+function openTP() { populateTPDrops(); document.getElementById('tpOverlay').classList.add('show'); }
+function openTPWithSel(a, b) {
+  populateTPDrops();
+  document.getElementById('tpA').value = a;
+  document.getElementById('tpB').value = b;
+  document.getElementById('tpOverlay').classList.add('show');
+  calcTP();
+}
+function closeTPBtn() { document.getElementById('tpOverlay').classList.remove('show'); lastTPResult = null; }
+function closeTP(e) { if (e.target === document.getElementById('tpOverlay')) closeTPBtn(); }
+
+function populateTPDrops() {
+  const rows = document.querySelectorAll('#tbody tr');
+  let opts = '<option value="">-- Pilih --</option>';
+  rows.forEach((r, i) => {
+    const nm = r.querySelector('.in-name')?.value || 'WP ' + (i+1);
+    opts += `<option value="${i}">${i+1}. ${nm}</option>`;
+  });
+  document.getElementById('tpA').innerHTML = opts;
+  document.getElementById('tpB').innerHTML = opts;
+}
+
+function toggleTPInputs() {
+  const m = document.getElementById('tpMethod').value;
+  document.getElementById('tpFrRow').style.display = m==='fraction'?'block':'none';
+  document.getElementById('tpLatRow').style.display = m==='lat'?'block':'none';
+  document.getElementById('tpLonRow').style.display = m==='lon'?'block':'none';
+}
+
+function dmsToD(deg, min, dir) {
+  const d = (parseFloat(deg)||0) + (parseFloat(min)||0)/60;
+  return (dir==='S'||dir==='W') ? -d : d;
+}
+
+function calcTP() {
+  const iA = document.getElementById('tpA').value;
+  const iB = document.getElementById('tpB').value;
+  const res = document.getElementById('tpResult');
+  if (iA===''||iB===''||iA===iB) { res.style.display='none'; return; }
+  const rows = document.querySelectorAll('#tbody tr');
+  const rA = rows[parseInt(iA)], rB = rows[parseInt(iB)];
+  const insA = rA.querySelectorAll('.t-in,.sel-dir'), insB = rB.querySelectorAll('.t-in,.sel-dir');
+  const latA = dmsToD(insA[2].value, insA[4].value, insA[3].value);
+  const lonA = dmsToD(insA[5].value, insA[7].value, insA[6].value);
+  const latB = dmsToD(insB[2].value, insB[4].value, insB[3].value);
+  const lonB = dmsToD(insB[5].value, insB[7].value, insB[6].value);
+  if (isNaN(latA)||isNaN(lonA)||isNaN(latB)||isNaN(lonB)) { res.style.display='none'; return; }
+
+  const method = document.getElementById('tpMethod').value;
+  let tpLat, tpLon;
+
+  if (method==='fraction') {
+    const fr = parseFloat(document.getElementById('tpFrac').value);
+    tpLat = latA + (latB-latA)*fr; tpLon = lonA + (lonB-lonA)*fr;
+  } else if (method==='lat') {
+    const tLat = dmsToD(document.getElementById('tpTLatD').value, document.getElementById('tpTLatM').value, document.getElementById('tpTLatDir').value);
+    if (isNaN(tLat)) { res.style.display='none'; return; }
+    if (latA===latB) { document.getElementById('tpCoord').textContent='Same latitude!'; res.style.display='block'; return; }
+    const fr = (tLat-latA)/(latB-latA);
+    tpLat = tLat; tpLon = lonA + (lonB-lonA)*fr;
+  } else {
+    const tLon = dmsToD(document.getElementById('tpTLonD').value, document.getElementById('tpTLonM').value, document.getElementById('tpTLonDir').value);
+    if (isNaN(tLon)) { res.style.display='none'; return; }
+    if (lonA===lonB) { document.getElementById('tpCoord').textContent='Same longitude!'; res.style.display='block'; return; }
+    const fr = (tLon-lonA)/(lonB-lonA);
+    tpLat = latA + (latB-latA)*fr; tpLon = tLon;
+  }
+
+  lastTPResult = { lat:tpLat, lon:tpLon, insertAfter:Math.min(parseInt(iA),parseInt(iB)) };
+  const dA = haversine(latA,lonA,tpLat,tpLon), dB = haversine(tpLat,tpLon,latB,lonB);
+  const crs = bearing(latA,lonA,latB,lonB);
+  document.getElementById('tpCoord').innerHTML = `${fmtCoordStr(tpLat,true)}<br>${fmtCoordStr(tpLon,false)}`;
+  document.getElementById('tpDA').textContent = dA.toFixed(2);
+  document.getElementById('tpDB').textContent = dB.toFixed(2);
+  document.getElementById('tpCRS').textContent = Math.round(crs).toString().padStart(3,'0');
+  res.style.display='block';
+}
+
+function insertTP() {
+  if (!lastTPResult) { toast('HITUNG DULU TP-NYA'); return; }
+  const { lat, lon, insertAfter } = lastTPResult;
+  const degToD = (v, isLat) => {
+    const abs = Math.abs(v);
+    const d = Math.floor(abs);
+    const m = ((abs-d)*60).toFixed(3).padStart(6,'0');
+    const dir = isLat ? (v>=0?'N':'S') : (v>=0?'E':'W');
+    return { d:d.toString().padStart(isLat?2:3,'0'), m, dir };
+  };
+  const newRow = addRow(insertAfter);
+  const ins = newRow.querySelectorAll('.t-in,.sel-dir');
+  const ltd = degToD(lat,true), lnd = degToD(lon,false);
+  ins[0].value = 'TP-' + (insertAfter+2);
+  ins[2].value = ltd.d; ins[3].value = ltd.dir; ins[4].value = ltd.m;
+  ins[5].value = lnd.d; ins[6].value = lnd.dir; ins[7].value = lnd.m;
+  ins[9].value = 'Transfer Point';
+  updateRowNums(); calculateAll(); triggerAutoSave();
+  closeTPBtn(); toast('✓ TP INSERTED');
+}
+
+// ══════════════════════════════════════════════
+//  CONFIRM MODAL
+// ══════════════════════════════════════════════
+function showConfirm(msg, onYes) {
+  document.getElementById('confirmMsg').innerHTML = msg;
+  document.getElementById('confirmYes').onclick = () => { onYes(); closeConfirm(); };
+  document.getElementById('confirmOverlay').classList.add('show');
+}
+function closeConfirm() { document.getElementById('confirmOverlay').classList.remove('show'); }
+
+// ══════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════
+function toast(msg) {
+  const el = document.getElementById('ti');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+window.addEventListener('beforeunload', () => saveCurrentRoute(false));
 </script>
 </body>
 </html>
