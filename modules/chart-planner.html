@@ -318,7 +318,9 @@ body.night .leaflet-tile{filter:brightness(.35) saturate(.2) hue-rotate(330deg);
     <button class="hbtn" id="wpBtn" onclick="toggleWpPanel()">📍 WP</button>
     <button class="hbtn" id="chainModeBtn" onclick="toggleChainMode()" title="Chain Mode">⛓</button>
     <button class="hbtn chain-done" id="chainDoneBtn" onclick="finishChain()" title="Selesai chain">✓ SELESAI</button>
-      </div>
+    <button class="hbtn" onclick="document.getElementById('fileIn').click()" title="Load JSON manual">📂</button>
+    <input type="file" id="fileIn" accept=".json" style="display:none" onchange="loadFile(event)">
+  </div>
 
   <!-- FILTER TOGGLE -->
   <div id="fbt" onclick="toggleFB()"><span class="fbt-a" id="fbt-arrow">▲</span></div>
@@ -421,7 +423,7 @@ body.night .leaflet-tile{filter:brightness(.35) saturate(.2) hue-rotate(330deg);
       </div>
       <div class="gpx-banner-txt" id="gpxBannerTxt">Ditemukan route GPX di NavHub storage.</div>
       <div class="gpx-actions">
-        <button class="gpx-btn primary" onclick="loadGPXFromStorage()">⬇ LOAD GPX</button>
+        <button class="gpx-btn primary" onclick="openGPXPicker()">⬇ PILIH GPX</button>
         <button class="gpx-btn" id="routeToggleBtn" onclick="toggleRouteVisibility()">👁 SHOW ROUTE</button>
       </div>
     </div>
@@ -718,26 +720,72 @@ function downloadGPX(){
   toast('⬇ MENGIRIM KE NAVHUB...');
 }
 
-/* ─── LOAD GPX FROM INDEXEDDB ─── */
+/* ─── LOAD GPX FROM INDEXEDDB (multi-slot) ─── */
 async function checkGPXBanner(){
-  const rec=await NavHubDB.getGPX('main');
-  const banner=document.getElementById('gpxBanner');
-  if(rec){document.getElementById('gpxBannerTxt').textContent=`${rec.fileName}  ·  ${rec.waypointCount} wpt  ·  ${rec.trackPointCount} trk pts`;banner.classList.add('show');}
-  else{banner.classList.remove('show');}
+  const all = await NavHubDB.getAllGPX();
+  const valid = (all||[]).filter(r => r.waypoints?.length || r.trackPoints?.length);
+  const banner = document.getElementById('gpxBanner');
+  if(valid.length){
+    document.getElementById('gpxBannerTxt').textContent =
+      valid.length === 1
+        ? `${valid[0].routeName||valid[0].fileName||valid[0].id}  ·  ${valid[0].waypointCount||0} wpt`
+        : `${valid.length} route GPX tersedia di NavHub storage`;
+    banner.classList.add('show');
+  } else { banner.classList.remove('show'); }
   syncRouteBtn();
 }
-async function loadGPXFromStorage(){
-  const rec=await NavHubDB.getGPX('main');if(!rec){toast('TIDAK ADA DATA GPX');return;}
-  if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}wpMarkers.forEach(m=>map.removeLayer(m));wpMarkers=[];waypoints=[];
+
+async function openGPXPicker(){
+  const all = await NavHubDB.getAllGPX();
+  const valid = (all||[]).filter(r => r.waypoints?.length || r.trackPoints?.length);
+  if(!valid.length){toast('TIDAK ADA DATA GPX');return;}
+  // Jika hanya satu, langsung load
+  if(valid.length===1){loadGPXSlot(valid[0].id);return;}
+  // Buat picker
+  const overlay = document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:8000;background:rgba(4,16,28,.92);backdrop-filter:blur(6px);display:flex;align-items:flex-end;';
+  overlay.innerHTML=`<div style="width:100%;max-height:70vh;background:var(--panel);border-top:2px solid var(--border2);border-radius:16px 16px 0 0;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <span style="font-family:var(--fhud);font-size:20px;letter-spacing:2px;color:var(--accent);flex:1;">📡 PILIH GPX</span>
+      <button onclick="this.closest('.gpx-pick-overlay').remove()" style="width:30px;height:30px;background:transparent;border:1px solid var(--border2);border-radius:7px;color:var(--muted2);cursor:pointer;font-size:14px;">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:8px 14px;">
+      ${valid.map(rec=>{
+        const wc=rec.waypoints?.length||rec.trackPoints?.length||0;
+        const name=rec.routeName||rec.fileName||rec.id;
+        const d=rec.savedAt?new Date(rec.savedAt).toLocaleDateString('id-ID',{day:'2-digit',month:'short'}):'';
+        return`<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="loadGPXSlot('${rec.id}');document.querySelector('.gpx-pick-overlay')?.remove()">
+          <div style="flex:1;"><div style="font-family:var(--fmono);font-size:11px;color:var(--text);font-weight:600;">${name}</div>
+          <div style="font-family:var(--fmono);font-size:9px;color:var(--muted2);margin-top:2px;">${wc} wpt${d?' · '+d:''}</div></div>
+          <span style="font-family:var(--fmono);font-size:9px;color:var(--accent);padding:4px 10px;border:1px solid var(--accent);border-radius:20px;">LOAD</span>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+  overlay.classList.add('gpx-pick-overlay');
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  document.body.appendChild(overlay);
+}
+
+async function loadGPXSlot(id){
+  const rec=await NavHubDB.getGPX(id);
+  if(!rec){toast('DATA TIDAK DITEMUKAN');return;}
+  if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
+  wpMarkers.forEach(m=>map.removeLayer(m));wpMarkers=[];waypoints=[];
   if(rec.waypoints&&rec.waypoints.length)rec.waypoints.forEach(w=>waypoints.push({name:w.name||('WP'+(waypoints.length+1)),lat:w.lat,lon:w.lon}));
   if(!waypoints.length&&rec.trackPoints&&rec.trackPoints.length)rec.trackPoints.forEach((p,i)=>waypoints.push({name:'T'+(i+1),lat:p.lat,lon:p.lon}));
   renderWpList();
   const pts=(rec.trackPoints&&rec.trackPoints.length)?rec.trackPoints:waypoints;
   if(pts.length)routeLayer=L.polyline(pts.map(p=>[p.lat,p.lon]),{color:'#00d4aa',weight:2.5,dashArray:'8,4',opacity:.9}).addTo(map);
   waypoints.forEach((wp,i)=>{const mk=L.marker([wp.lat,wp.lon],{icon:L.divIcon({className:'',html:`<div style="pointer-events:none;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center"><div style="background:rgba(4,16,28,.88);border:1px solid #00d4aa;color:#00d4aa;font-family:monospace;font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;white-space:nowrap;margin-bottom:2px">${i+1}. ${wp.name}</div><div style="width:6px;height:6px;background:#00d4aa;border-radius:50%"></div></div>`,iconSize:[0,0],iconAnchor:[0,0]}),interactive:false});mk.addTo(map);wpMarkers.push(mk);});
-  routeVisible=true;syncRouteBtn();if(routeLayer)map.fitBounds(routeLayer.getBounds(),{padding:[30,30]});
-  toast(`GPX LOADED · ${waypoints.length} WPT`);document.getElementById('wpPanel').classList.remove('show');
+  routeVisible=true;syncRouteBtn();
+  if(routeLayer)map.fitBounds(routeLayer.getBounds(),{padding:[30,30]});
+  toast(`GPX LOADED · ${waypoints.length} WPT`);
+  document.getElementById('wpPanel').classList.remove('show');
 }
+
+// Legacy alias
+async function loadGPXFromStorage(){ await openGPXPicker(); }
 
 /* ─── SAVED CHAINS ─── */
 async function saveChain(){
