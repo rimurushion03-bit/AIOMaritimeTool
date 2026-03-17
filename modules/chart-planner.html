@@ -59,6 +59,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .hbtn:hover,.hbtn:active{background:var(--adim);border-color:var(--accent);color:var(--accent);}
 .hbtn.on{background:var(--adim);border-color:var(--accent);color:var(--accent);}
 .hbtn.chain-on{background:rgba(255,215,0,.12);border-color:var(--gold);color:var(--gold);}
+.hbtn.chain-done{background:rgba(16,185,129,.15);border-color:#10b981;color:#10b981;display:none;}
+.hbtn.chain-done.show{display:flex;}
 
 /* FILTER TOGGLE TAB */
 #fbt{display:flex;align-items:center;justify-content:center;height:14px;
@@ -151,6 +153,30 @@ body.night .leaflet-tile{filter:brightness(.35) saturate(.2) hue-rotate(330deg);
 .expbtn{flex:1;padding:9px;border-radius:7px;border:none;font-family:var(--fhud);font-size:15px;letter-spacing:2px;cursor:pointer;}
 .ep{background:var(--accent);color:var(--bg);}
 .es{background:var(--border2);color:var(--text);}
+
+/* SAVED CHAINS */
+#savedTab{display:none;}
+.sv-empty{text-align:center;padding:28px 20px;font-family:var(--fmono);font-size:11px;color:var(--muted);line-height:1.9;}
+.sv-save-row{display:flex;gap:6px;padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.sv-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:7px;
+  color:var(--text);font-family:var(--fmono);font-size:11px;padding:7px 10px;outline:none;transition:border-color .15s;}
+.sv-input::placeholder{color:var(--muted);}
+.sv-input:focus{border-color:var(--accent);}
+.sv-savebtn{padding:7px 14px;background:var(--accent);border:none;border-radius:7px;
+  color:var(--bg);font-family:var(--fhud);font-size:14px;letter-spacing:1.5px;cursor:pointer;
+  white-space:nowrap;transition:opacity .15s;}
+.sv-savebtn:active{opacity:.7;}
+.sv-item{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);transition:background .15s;}
+.sv-item:active{background:var(--adim);}
+.sv-inf{flex:1;min-width:0;cursor:pointer;}
+.sv-name{font-family:var(--fmono);font-size:12px;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sv-meta{font-family:var(--fmono);font-size:9px;color:var(--muted2);margin-top:2px;}
+.sv-load{padding:5px 10px;background:var(--adim);border:1px solid var(--accent);border-radius:6px;
+  color:var(--accent);font-family:var(--fmono);font-size:9px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.sv-load:active{opacity:.7;}
+.sv-del{width:28px;height:28px;background:transparent;border:1px solid var(--border2);border-radius:5px;
+  color:var(--muted2);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.sv-del:hover{border-color:var(--danger);color:var(--danger);}
 
 /* WP PANEL */
 #wpPanel{display:none;position:fixed;inset:0;z-index:3000;
@@ -256,8 +282,7 @@ body.night .leaflet-tile{filter:brightness(.35) saturate(.2) hue-rotate(330deg);
     <button class="hbtn" id="modeBtn" onclick="toggleMode()">🗺 MAP</button>
     <button class="hbtn" id="wpBtn" onclick="toggleWpPanel()">📍 WP</button>
     <button class="hbtn" id="chainModeBtn" onclick="toggleChainMode()" title="Chain Mode">⛓</button>
-    <button class="hbtn" onclick="document.getElementById('fileIn').click()" title="Load JSON manual">📂</button>
-    <input type="file" id="fileIn" accept=".json" style="display:none" onchange="loadFile(event)">
+    <button class="hbtn chain-done" id="chainDoneBtn" onclick="finishChain()" title="Selesai chain">✓ SELESAI</button>
   </div>
 
   <!-- FILTER TOGGLE -->
@@ -299,6 +324,7 @@ body.night .leaflet-tile{filter:brightness(.35) saturate(.2) hue-rotate(330deg);
     <div id="shtabs">
       <div class="stab on" onclick="showTab('chain',this)">CHAIN</div>
       <div class="stab" onclick="showTab('exp',this)">EXPORT</div>
+      <div class="stab" onclick="showTab('saved',this)">💾 SAVED</div>
     </div>
     <div id="shbd">
       <div id="chainTab">
@@ -313,6 +339,13 @@ body.night .leaflet-tile{filter:brightness(.35) saturate(.2) hue-rotate(330deg);
             <button class="expbtn es" onclick="clearChain()">CLEAR</button>
           </div>
         </div>
+      </div>
+      <div id="savedTab" style="display:none">
+        <div class="sv-save-row">
+          <input class="sv-input" id="svNameInput" placeholder="Nama preset (mis: VOYAGE KTI-MKS)" maxlength="40">
+          <button class="sv-savebtn" onclick="saveChain()">SAVE</button>
+        </div>
+        <div id="savedList"></div>
       </div>
     </div>
   </div>
@@ -382,7 +415,7 @@ const LC={GENERAL:{s:'#4a9eff'},OVERVIEW:{s:'#00d4aa'},COASTAL:{s:'#ff8c42'},APP
 let charts=[],chain=[],waypoints=[];
 let activeFilters=new Set(['ALL']);
 let mapMode=true,sheetCol=true,activeTab='chain';
-let chainMode=false,intersectVisible=null;
+let chainMode=false,chainFinished=false,intersectVisible=null;
 let routeLayer=null,wpMarkers=[];
 let routeVisible=false;
 let fbToggleState=false,toastT;
@@ -437,7 +470,12 @@ function parseData(json){
 }
 
 /* ─── MAP RENDER ─── */
-function isVis(c){const ok=activeFilters.has('ALL')||activeFilters.has(c.layer);if(!ok)return false;if(intersectVisible!==null)return intersectVisible.has(c.uid);return true;}
+function isVis(c){
+  if(chainFinished) return chain.includes(c.uid);
+  const ok=activeFilters.has('ALL')||activeFilters.has(c.layer);if(!ok)return false;
+  if(intersectVisible!==null)return intersectVisible.has(c.uid);
+  return true;
+}
 function renderMap(){
   charts.forEach(c=>{if(c.rect){map.removeLayer(c.rect);c.rect=null;}});
   const sorted=charts.filter(isVis).sort((a,b)=>Number(b.attr.SCALE||0)-Number(a.attr.SCALE||0));
@@ -486,10 +524,31 @@ function chainAdd(uid){
 }
 function rebuildIntersect(){if(chain.length===0){intersectVisible=null;return;}const c=charts.find(ch=>ch.uid===chain[chain.length-1]);if(!c){intersectVisible=null;return;}const nv=new Set();charts.forEach(o=>{if(bboxX(c.bbox,o.bbox))nv.add(o.uid);});chain.forEach(u=>nv.add(u));intersectVisible=nv;}
 function updateRect(uid){const c=charts.find(ch=>ch.uid===uid);if(!c?.rect)return;const ic=chain.includes(uid),col=LC[c.layer]||{s:'#fff'};if(ic)c.rect.setStyle({color:'#ffd700',weight:2.5,dashArray:null,fillColor:'#ffd700',fillOpacity:.18});else c.rect.setStyle({color:col.s,weight:1.5,dashArray:'5,4',fillColor:col.s,fillOpacity:.08});}
-function toggleChainMode(){chainMode=!chainMode;document.getElementById('chainModeBtn').classList.toggle('chain-on',chainMode);if(chainMode&&chain.length>0)rebuildIntersect();else intersectVisible=null;renderMap();toast(chainMode?'CHAIN MODE ON':'CHAIN MODE OFF');}
+function toggleChainMode(){
+  chainMode=!chainMode;
+  chainFinished=false;
+  const btn=document.getElementById('chainModeBtn');
+  const doneBtn=document.getElementById('chainDoneBtn');
+  btn.classList.toggle('chain-on',chainMode);
+  doneBtn.classList.toggle('show',chainMode);
+  if(chainMode&&chain.length>0)rebuildIntersect();
+  else{intersectVisible=null;}
+  renderMap();
+  toast(chainMode?'CHAIN MODE ON':'CHAIN MODE OFF');
+}
+function finishChain(){
+  if(!chain.length){toast('CHAIN KOSONG');return;}
+  chainFinished=true;
+  chainMode=false;
+  intersectVisible=null;
+  document.getElementById('chainModeBtn').classList.remove('chain-on');
+  document.getElementById('chainDoneBtn').classList.remove('show');
+  renderMap();
+  toast('✓ CHAIN SELESAI · '+chain.length+' PETA');
+}
 function moveChain(uid,d){const i=chain.indexOf(uid);if(i<0)return;const ni=i+d;if(ni<0||ni>=chain.length)return;[chain[i],chain[ni]]=[chain[ni],chain[i]];renderChainList();}
 function removeFromChain(uid){chain=chain.filter(u=>u!==uid);const c=charts.find(ch=>ch.uid===uid);if(c?.rect){const col=LC[c.layer]||{s:'#fff'};c.rect.setStyle({color:col.s,weight:1.5,dashArray:'5,4',fillColor:col.s,fillOpacity:.08});}renderChainList();renderText();}
-function clearChain(){chain.forEach(uid=>{const c=charts.find(ch=>ch.uid===uid);if(c?.rect){const col=LC[c.layer]||{s:'#fff'};c.rect.setStyle({color:col.s,weight:1.5,dashArray:'5,4',fillColor:col.s,fillOpacity:.08});}});chain=[];intersectVisible=null;if(window._cl){window._cl.forEach(l=>map.removeLayer(l));window._cl=[];}renderChainList();renderText();renderMap();document.getElementById('exportText').value='';}
+function clearChain(){chain.forEach(uid=>{const c=charts.find(ch=>ch.uid===uid);if(c?.rect){const col=LC[c.layer]||{s:'#fff'};c.rect.setStyle({color:col.s,weight:1.5,dashArray:'5,4',fillColor:col.s,fillOpacity:.08});}});chain=[];intersectVisible=null;chainFinished=false;document.getElementById('chainDoneBtn').classList.remove('show');if(window._cl){window._cl.forEach(l=>map.removeLayer(l));window._cl=[];}renderChainList();renderText();renderMap();document.getElementById('exportText').value='';}
 function renderChainList(){
   const list=document.getElementById('chainList'),empty=document.getElementById('chainEmpty');
   document.getElementById('chainCnt').textContent=chain.length+' peta';
@@ -514,7 +573,7 @@ function copyExport(){updateExport();const txt=document.getElementById('exportTe
 function toggleMode(){mapMode=!mapMode;const b=document.getElementById('modeBtn');document.getElementById('mapWrap').style.display=mapMode?'flex':'none';document.getElementById('txm').classList.toggle('show',!mapMode);b.textContent=mapMode?'🗺 MAP':'📋 TEXT';b.classList.toggle('on',!mapMode);if(mapMode)setTimeout(()=>map.invalidateSize(),50);else renderText();}
 function setFilter(layer,btn){if(layer==='ALL'){activeFilters=new Set(['ALL']);document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}else{activeFilters.delete('ALL');document.querySelector('.fbtn[data-layer="ALL"]').classList.remove('on');if(activeFilters.has(layer)){activeFilters.delete(layer);btn.classList.remove('on');if(activeFilters.size===0){activeFilters.add('ALL');document.querySelector('.fbtn[data-layer="ALL"]').classList.add('on');}}else{activeFilters.add(layer);btn.classList.add('on');}}renderMap();renderText();}
 function toggleSheet(){sheetCol=!sheetCol;document.getElementById('sheet').classList.toggle('exp',!sheetCol);setTimeout(()=>map.invalidateSize(),310);}
-function showTab(t,el){activeTab=t;document.querySelectorAll('.stab').forEach(x=>x.classList.remove('on'));el.classList.add('on');document.getElementById('chainTab').style.display=t==='chain'?'block':'none';document.getElementById('expTab').style.display=t==='exp'?'block':'none';if(t==='exp')updateExport();}
+function showTab(t,el){activeTab=t;document.querySelectorAll('.stab').forEach(x=>x.classList.remove('on'));el.classList.add('on');document.getElementById('chainTab').style.display=t==='chain'?'block':'none';document.getElementById('expTab').style.display=t==='exp'?'block':'none';document.getElementById('savedTab').style.display=t==='saved'?'block':'none';if(t==='exp')updateExport();if(t==='saved')renderSavedTab();}
 function showLd(m){document.getElementById('ldo').classList.add('show');document.getElementById('ldtxt').textContent=m||'Memuat...';}
 function hideLd(){document.getElementById('ldo').classList.remove('show');}
 
@@ -586,6 +645,69 @@ async function loadGPXFromStorage(){
   waypoints.forEach((wp,i)=>{const mk=L.marker([wp.lat,wp.lon],{icon:L.divIcon({className:'',html:`<div style="pointer-events:none;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center"><div style="background:rgba(4,16,28,.88);border:1px solid #00d4aa;color:#00d4aa;font-family:monospace;font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;white-space:nowrap;margin-bottom:2px">${i+1}. ${wp.name}</div><div style="width:6px;height:6px;background:#00d4aa;border-radius:50%"></div></div>`,iconSize:[0,0],iconAnchor:[0,0]}),interactive:false});mk.addTo(map);wpMarkers.push(mk);});
   routeVisible=true;syncRouteBtn();if(routeLayer)map.fitBounds(routeLayer.getBounds(),{padding:[30,30]});
   toast(`GPX LOADED · ${waypoints.length} WPT`);document.getElementById('wpPanel').classList.remove('show');
+}
+
+/* ─── SAVED CHAINS ─── */
+async function saveChain(){
+  if(!chain.length){toast('CHAIN KOSONG');return;}
+  const nameEl=document.getElementById('svNameInput');
+  const name=nameEl.value.trim()||('Chain '+new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}));
+  const id='chain_'+Date.now();
+  await NavHubDB.saveRoute({
+    id, name,
+    chain:[...chain],
+    chartCount:chain.length,
+    date:new Date().toISOString(),
+  });
+  nameEl.value='';
+  toast('✓ CHAIN "'+name+'" DISIMPAN');
+  renderSavedTab();
+}
+
+async function renderSavedTab(){
+  const list=document.getElementById('savedList');
+  const rows=await NavHubDB.getAllRoutes();
+  if(!rows.length){
+    list.innerHTML='<div class="sv-empty">Belum ada chain tersimpan.<br>Susun chain lalu tap SAVE.</div>';
+    return;
+  }
+  rows.sort((a,b)=>b.date.localeCompare(a.date));
+  list.innerHTML=rows.map(r=>{
+    const d=new Date(r.date);
+    const ds=d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+    return`<div class="sv-item">
+      <div class="sv-inf" onclick="loadChain('${r.id}')">
+        <div class="sv-name">${r.name}</div>
+        <div class="sv-meta">${r.chartCount} peta &nbsp;·&nbsp; ${ds}</div>
+      </div>
+      <button class="sv-load" onclick="loadChain('${r.id}')">⬆ LOAD</button>
+      <button class="sv-del" onclick="deleteChain('${r.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+async function loadChain(id){
+  const rec=await NavHubDB.getRoute(id);
+  if(!rec){toast('DATA TIDAK DITEMUKAN');return;}
+  // Clear chain dulu
+  chain.forEach(uid=>{const c=charts.find(ch=>ch.uid===uid);if(c?.rect){const col=LC[c.layer]||{s:'#fff'};c.rect.setStyle({color:col.s,weight:1.5,dashArray:'5,4',fillColor:col.s,fillOpacity:.08});}});
+  chain=[];intersectVisible=null;
+  if(window._cl){window._cl.forEach(l=>map.removeLayer(l));window._cl=[];}
+  // Load chain dari preset — hanya uid yang masih ada di charts
+  rec.chain.forEach(uid=>{if(charts.find(ch=>ch.uid===uid))chain.push(uid);});
+  renderMap();renderChainList();renderText();
+  // Pindah ke tab chain dan expand sheet
+  const chainTabEl=document.querySelector('.stab');
+  showTab('chain',chainTabEl);
+  if(sheetCol)toggleSheet();
+  if(chain.length){fitVisible();}
+  toast('✓ LOADED: '+rec.name+' ('+chain.length+' peta)');
+}
+
+async function deleteChain(id){
+  await NavHubDB.deleteRoute(id);
+  toast('CHAIN DIHAPUS');
+  renderSavedTab();
 }
 
 /* ─── INIT ─── */
