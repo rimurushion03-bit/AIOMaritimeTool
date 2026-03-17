@@ -132,6 +132,82 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
 
 .sb-copy{font-family:var(--fmono);font-size:7px;letter-spacing:2px;color:var(--muted);text-align:center;}
 
+/* ═══════════ CHART DATA PANEL ═══════════ */
+#cd-panel{position:fixed;top:0;left:-295px;width:295px;height:100%;
+  background:var(--panel);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+  border-right:1px solid var(--border2);z-index:7000;
+  display:flex;flex-direction:column;
+  transition:left .38s cubic-bezier(.4,0,.2,1);}
+#cd-panel.open{left:295px;}
+
+.cd-head{padding:46px 22px 16px;
+  background:linear-gradient(to bottom,rgba(74,158,255,.08),transparent);
+  border-bottom:1px solid var(--border);flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;}
+.cd-title{font-family:var(--fhud);font-size:22px;letter-spacing:4px;color:var(--blue);line-height:1;}
+.cd-sub{font-family:var(--fmono);font-size:8px;letter-spacing:1.5px;color:var(--muted2);margin-top:3px;}
+.cd-close{width:28px;height:28px;background:transparent;border:1px solid var(--border2);
+  border-radius:7px;color:var(--muted2);font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.cd-close:hover{background:var(--adim);border-color:var(--accent);color:var(--accent);}
+
+.cd-body{flex:1;overflow-y:auto;padding:16px 22px;scrollbar-width:none;}
+.cd-body::-webkit-scrollbar{display:none;}
+
+/* Status badge */
+.cd-status{display:flex;align-items:center;gap:8px;padding:10px 12px;
+  background:var(--adim);border:1px solid var(--border2);border-radius:8px;margin-bottom:16px;}
+.cd-st-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s;}
+.cd-st-dot.loaded{background:var(--success);box-shadow:0 0 6px var(--success);}
+.cd-st-txt{font-family:var(--fmono);font-size:9px;color:var(--muted2);letter-spacing:1px;flex:1;}
+.cd-st-txt strong{color:var(--text);display:block;font-size:10px;margin-bottom:1px;}
+
+/* Upload zone */
+.cd-zone{border:2px dashed var(--border2);border-radius:10px;padding:22px 16px;
+  text-align:center;cursor:pointer;transition:all .2s;margin-bottom:14px;}
+.cd-zone:hover,.cd-zone.drag{border-color:var(--blue);background:rgba(74,158,255,.06);}
+.cd-zone-icon{font-size:28px;margin-bottom:8px;}
+.cd-zone-txt{font-family:var(--fmono);font-size:10px;color:var(--muted2);letter-spacing:1px;line-height:1.7;}
+.cd-zone-hint{font-size:8px;color:var(--muted);margin-top:4px;letter-spacing:.5px;}
+
+/* Info card */
+.cd-info{background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+  padding:12px;margin-bottom:14px;display:none;}
+.cd-info.show{display:block;}
+.cd-info-row{display:flex;justify-content:space-between;align-items:center;
+  font-family:var(--fmono);font-size:9px;color:var(--muted2);margin-bottom:6px;}
+.cd-info-row:last-child{margin-bottom:0;}
+.cd-info-val{color:var(--text);font-weight:600;}
+.cd-info-val.accent{color:var(--blue);}
+
+/* Layer breakdown */
+.cd-layers{margin-bottom:14px;display:none;}
+.cd-layers.show{display:block;}
+.cd-layer-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.cd-layer-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.cd-layer-name{font-family:var(--fmono);font-size:9px;color:var(--muted2);letter-spacing:1px;flex:1;}
+.cd-layer-cnt{font-family:var(--fmono);font-size:9px;color:var(--text);font-weight:600;}
+.cd-layer-bar{height:3px;border-radius:3px;margin-top:2px;transition:width .5s;}
+
+/* Buttons */
+.cd-btn{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border2);
+  background:transparent;color:var(--muted2);font-family:var(--fmono);font-size:10px;
+  letter-spacing:1px;cursor:pointer;transition:all .15s;margin-bottom:8px;text-align:center;}
+.cd-btn:hover{background:var(--adim);border-color:var(--accent);color:var(--accent);}
+.cd-btn.danger{border-color:var(--danger);color:var(--danger);}
+.cd-btn.danger:hover{background:rgba(239,68,68,.1);}
+.cd-btn.primary{border-color:var(--blue);color:var(--blue);background:rgba(74,158,255,.08);}
+.cd-btn.primary:hover{background:rgba(74,158,255,.18);}
+
+/* Icon button di sebelah logo sidebar */
+.sb-data-btn{width:26px;height:26px;background:transparent;border:1px solid rgba(74,158,255,.35);
+  border-radius:6px;color:rgba(74,158,255,.7);font-size:13px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0;margin-left:6px;}
+.sb-data-btn:hover{background:rgba(74,158,255,.12);border-color:var(--blue);color:var(--blue);}
+.sb-data-btn.has-data{border-color:var(--blue);color:var(--blue);
+  box-shadow:0 0 8px rgba(74,158,255,.3);animation:dataPulse 2s ease-in-out infinite alternate;}
+@keyframes dataPulse{from{box-shadow:0 0 4px rgba(74,158,255,.2);}to{box-shadow:0 0 12px rgba(74,158,255,.5);}}
+
 /* ═══════════ TOPBAR ═══════════ */
 #topbar{position:fixed;top:0;left:0;right:0;z-index:5000;height:52px;
   background:var(--panel);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
@@ -240,7 +316,10 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
 <!-- Sidebar -->
 <aside id="sidebar">
   <div class="sb-head">
-    <div class="sb-logo" onclick="go('home');closeSB()">NAVHUB</div>
+    <div style="display:flex;align-items:center;gap:0;">
+      <div class="sb-logo" onclick="go('home');closeSB()">NAVHUB</div>
+      <button class="sb-data-btn" id="cd-btn" onclick="toggleCDPanel()" title="Chart Data">🗂</button>
+    </div>
     <div class="sb-logo-sub">// MARITIME NAVIGATION SUITE</div>
   </div>
 
@@ -350,6 +429,113 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
 <!-- Toast -->
 <div id="toast"><div class="t-inner" id="t-inner"><div class="t-dot"></div><span class="t-msg" id="t-msg"></span></div></div>
 
+<!-- Chart Data Panel -->
+<div id="cd-panel">
+  <div class="cd-head">
+    <div>
+      <div class="cd-title">CHART DATA</div>
+      <div class="cd-sub">// PETA NAVIGASI · STORAGE</div>
+    </div>
+    <button class="cd-close" onclick="toggleCDPanel()">✕</button>
+  </div>
+  <div class="cd-body">
+
+    <!-- Status -->
+    <div class="cd-status">
+      <div class="cd-st-dot" id="cd-st-dot"></div>
+      <div class="cd-st-txt">
+        <strong id="cd-st-title">TIDAK ADA DATA</strong>
+        <span id="cd-st-sub">Upload file JSON chart data</span>
+      </div>
+    </div>
+
+    <!-- Upload Zone -->
+    <div class="cd-zone" id="cd-zone"
+         onclick="document.getElementById('cd-file-in').click()"
+         ondragover="cdDragOver(event)" ondragleave="cdDragLeave(event)" ondrop="cdDrop(event)">
+      <div class="cd-zone-icon">📂</div>
+      <div class="cd-zone-txt">TAP ATAU DROP FILE DI SINI</div>
+      <div class="cd-zone-hint">Format: .json · Chart Index PLI / DISHIDROS</div>
+    </div>
+    <input type="file" id="cd-file-in" accept=".json" style="display:none" onchange="cdLoadFile(this)">
+
+    <!-- Info -->
+    <div class="cd-info" id="cd-info">
+      <div class="cd-info-row">
+        <span>Total Peta</span>
+        <span class="cd-info-val accent" id="cd-total">0</span>
+      </div>
+      <div class="cd-info-row">
+        <span>Ukuran Data</span>
+        <span class="cd-info-val" id="cd-size">0 KB</span>
+      </div>
+      <div class="cd-info-row">
+        <span>Di-upload</span>
+        <span class="cd-info-val" id="cd-date">—</span>
+      </div>
+    </div>
+
+    <!-- Layer breakdown -->
+    <div class="cd-layers" id="cd-layers"></div>
+
+    <!-- Actions Chart -->
+    <button class="cd-btn primary" id="cd-open-btn" onclick="go('chart');closeSB();toggleCDPanel();" style="display:none">
+      🗺 &nbsp;BUKA CHART PLANNER
+    </button>
+    <button class="cd-btn danger" id="cd-clear-btn" onclick="cdClearData()" style="display:none">
+      🗑 &nbsp;HAPUS DATA
+    </button>
+
+    <!-- Divider GPX -->
+    <div style="height:1px;background:var(--border);margin:14px 0;"></div>
+    <div style="font-family:var(--fmono);font-size:8px;letter-spacing:2px;color:var(--muted);margin-bottom:10px;">// GPX ROUTE DATA</div>
+
+    <!-- GPX Status -->
+    <div class="cd-status" style="margin-bottom:12px;">
+      <div class="cd-st-dot" id="gpx-st-dot"></div>
+      <div class="cd-st-txt">
+        <strong id="gpx-st-title">TIDAK ADA ROUTE</strong>
+        <span id="gpx-st-sub">Upload file .gpx untuk Chart Planner</span>
+      </div>
+    </div>
+
+    <!-- GPX Upload Zone -->
+    <div class="cd-zone" id="gpx-zone" style="margin-bottom:10px;"
+         onclick="document.getElementById('gpx-file-in').click()"
+         ondragover="gpxDragOver(event)" ondragleave="gpxDragLeave(event)" ondrop="gpxDrop(event)">
+      <div class="cd-zone-icon">🛤</div>
+      <div class="cd-zone-txt" id="gpx-zone-txt">TAP ATAU DROP FILE GPX</div>
+      <div class="cd-zone-hint">Format: .gpx · Waypoint & Track</div>
+    </div>
+    <input type="file" id="gpx-file-in" accept=".gpx" style="display:none" onchange="gpxLoadFile(this)">
+
+    <!-- GPX Info -->
+    <div class="cd-info" id="gpx-info">
+      <div class="cd-info-row">
+        <span>Waypoints</span>
+        <span class="cd-info-val accent" id="gpx-wpt-cnt">0</span>
+      </div>
+      <div class="cd-info-row">
+        <span>Track Points</span>
+        <span class="cd-info-val" id="gpx-trk-cnt">0</span>
+      </div>
+      <div class="cd-info-row">
+        <span>Nama File</span>
+        <span class="cd-info-val" id="gpx-fname" style="font-size:8px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
+      </div>
+    </div>
+
+    <button class="cd-btn primary" id="gpx-dl-btn" onclick="gpxDownload()" style="display:none">
+      ⬇ &nbsp;DOWNLOAD GPX
+    </button>
+    <button class="cd-btn danger" id="gpx-clear-btn" onclick="gpxClearData()" style="display:none">
+      🗑 &nbsp;HAPUS ROUTE GPX
+    </button>
+
+  </div>
+</div>
+
+<script src="navhub-db.js"></script>
 <script>
 'use strict';
 const MODS = {
@@ -438,10 +624,15 @@ function toggleNight(){
   document.body.classList.toggle('night',nightOn);
   const b=document.getElementById('night-btn');
   b.classList.toggle('on',nightOn); b.textContent=nightOn?'☀ DAY':'🌙 NIGHT';
-  localStorage.setItem('nh-night',nightOn?'1':'0');
+  NavHubDB.saveSetting('night-mode', nightOn);
+  // Sync ke iframe yang sedang aktif
+  try{ document.getElementById('mod-frame').contentWindow.postMessage({type:'night',value:nightOn},'*'); }catch(e){}
   toast(nightOn?'NIGHT MODE ON':'DAY MODE');
 }
-if(localStorage.getItem('nh-night')==='1'){nightOn=true;document.body.classList.add('night');const b=document.getElementById('night-btn');b.classList.add('on');b.textContent='☀ DAY';}
+// Restore night mode dari IndexedDB
+NavHubDB.getSetting('night-mode', false).then(val => {
+  if(val){ nightOn=true; document.body.classList.add('night'); const b=document.getElementById('night-btn'); b.classList.add('on'); b.textContent='☀ DAY'; }
+});
 
 /* ── FULLSCREEN ── */
 function toggleFS(){
@@ -450,14 +641,14 @@ function toggleFS(){
   else (document.exitFullscreen||document.webkitExitFullscreen).call(document);
 }
 
-/* ── STORAGE ── */
-function updStor(){
+/* ── STORAGE (IndexedDB size estimate) ── */
+async function updStor(){
   try{
-    let t=0; for(let k in localStorage)if(localStorage.hasOwnProperty(k))t+=(localStorage[k].length+k.length)*2;
-    const p=Math.min((t/(5*1024*1024))*100,100).toFixed(1);
-    document.getElementById('stor-pct').textContent=p;
-    const b=document.getElementById('stor-bar'); b.style.width=p+'%';
-    b.className='sb-stor-fill'+(p>85?' danger':p>65?' warn':'');
+    const s = await NavHubDB.getDBSize();
+    document.getElementById('stor-pct').textContent = s.pct;
+    const b = document.getElementById('stor-bar');
+    b.style.width = Math.min(parseFloat(s.pct),100)+'%';
+    b.className = 'sb-stor-fill'+(parseFloat(s.pct)>85?' danger':parseFloat(s.pct)>65?' warn':'');
   }catch(e){}
 }
 updStor(); setInterval(updStor,15000);
@@ -528,6 +719,227 @@ function openSB(){
 
 // Kick off first hide after 4s
 setTimeout(()=>showTB(), 4000);
+
+/* ══════════════════════════════════════════
+   postMessage LISTENER (dari iframe child)
+══════════════════════════════════════════ */
+window.addEventListener('message', e => {
+  const d = e.data; if(!d||!d.type) return;
+  switch(d.type) {
+    case 'nh-chart-saved':  loaded['chart']=false; cdRefreshUI();  toast('✓ CHART DATA DIPERBARUI'); break;
+    case 'nh-gpx-saved':    loaded['chart']=false; gpxRefreshUI(); toast('✓ ROUTE GPX DISIMPAN');    break;
+    case 'nh-route-saved':  break; // future use
+    case 'nh-download-gpx': nhDownloadGPX(d.fileName, d.content); break;
+  }
+});
+
+/* ══════════════════════════════════════════
+   DOWNLOAD HELPER (trigger dari child)
+══════════════════════════════════════════ */
+function nhDownloadGPX(fileName, content) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], {type:'application/gpx+xml'}));
+  a.download = fileName || 'route.gpx';
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('⬇ GPX DOWNLOADED');
+}
+
+function nhDownloadFile(fileName, content, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], {type: mime||'application/octet-stream'}));
+  a.download = fileName;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ══════════════════════════════════════════
+   CHART DATA PANEL
+══════════════════════════════════════════ */
+const LAYER_COLORS_HUB = {
+  GENERAL:'#4a9eff', OVERVIEW:'#00d4aa', COASTAL:'#ff8c42',
+  APPROACH:'#a78bfa', HARBOUR:'#ffd700', BERTHING:'#ff6b6b'
+};
+let cdPanelOpen = false;
+
+function toggleCDPanel() {
+  cdPanelOpen = !cdPanelOpen;
+  document.getElementById('cd-panel').classList.toggle('open', cdPanelOpen);
+  if (cdPanelOpen) { cdRefreshUI(); gpxRefreshUI(); }
+}
+
+// ── Drag & Drop Chart ──
+function cdDragOver(e) { e.preventDefault(); document.getElementById('cd-zone').classList.add('drag'); }
+function cdDragLeave(e){ document.getElementById('cd-zone').classList.remove('drag'); }
+function cdDrop(e) {
+  e.preventDefault(); document.getElementById('cd-zone').classList.remove('drag');
+  const file = e.dataTransfer.files[0]; if(file) cdProcessFile(file);
+}
+function cdLoadFile(input) {
+  const file = input.files[0]; if(file) cdProcessFile(file); input.value='';
+}
+
+// ── Process + Save Chart JSON ──
+function cdProcessFile(file) {
+  document.getElementById('cd-zone').querySelector('.cd-zone-txt').textContent = 'MEMPROSES...';
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const { total, layerCounts } = await NavHubDB.saveChartData(e.target.result);
+      await cdRefreshUI();
+      toast(`✓ ${total} PETA TERSIMPAN KE DB`);
+      loaded['chart'] = false;
+    } catch(err) {
+      toast('GAGAL: FORMAT TIDAK VALID');
+      document.getElementById('cd-zone').querySelector('.cd-zone-txt').textContent = 'TAP ATAU DROP FILE DI SINI';
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ── Refresh Chart UI ──
+async function cdRefreshUI() {
+  const rec = await NavHubDB.getChartData();
+  const btn = document.getElementById('cd-btn');
+
+  if (!rec) {
+    document.getElementById('cd-st-dot').className = 'cd-st-dot';
+    document.getElementById('cd-st-title').textContent = 'TIDAK ADA DATA';
+    document.getElementById('cd-st-sub').textContent = 'Upload file JSON chart index';
+    document.getElementById('cd-info').classList.remove('show');
+    document.getElementById('cd-layers').classList.remove('show');
+    document.getElementById('cd-open-btn').style.display = 'none';
+    document.getElementById('cd-clear-btn').style.display = 'none';
+    document.getElementById('cd-zone').querySelector('.cd-zone-txt').textContent = 'TAP ATAU DROP FILE DI SINI';
+    btn.classList.remove('has-data');
+    return;
+  }
+
+  const d = new Date(rec.savedAt);
+  const dateStr = d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})+
+                  ' '+d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+
+  document.getElementById('cd-st-dot').className = 'cd-st-dot loaded';
+  document.getElementById('cd-st-title').textContent = `${rec.totalCharts} PETA SIAP`;
+  document.getElementById('cd-st-sub').textContent = 'Tersimpan di IndexedDB';
+  document.getElementById('cd-total').textContent = rec.totalCharts.toLocaleString('id');
+  document.getElementById('cd-size').textContent = rec.sizeKB > 1024
+    ? (rec.sizeKB/1024).toFixed(1)+' MB' : rec.sizeKB+' KB';
+  document.getElementById('cd-date').textContent = dateStr;
+  document.getElementById('cd-info').classList.add('show');
+
+  const lc = rec.layerCounts || {};
+  const maxCount = Math.max(...Object.values(lc), 1);
+  const layerEl = document.getElementById('cd-layers');
+  layerEl.innerHTML = Object.entries(lc).map(([name, count]) => {
+    const color = LAYER_COLORS_HUB[name] || '#888';
+    const pct = Math.round((count / maxCount) * 100);
+    return `<div class="cd-layer-row">
+      <div class="cd-layer-dot" style="background:${color}"></div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between">
+          <span class="cd-layer-name">${name}</span>
+          <span class="cd-layer-cnt">${count}</span>
+        </div>
+        <div class="cd-layer-bar" style="background:${color};opacity:.4;width:${pct}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+  layerEl.classList.add('show');
+  document.getElementById('cd-zone').querySelector('.cd-zone-txt').textContent = 'UPLOAD ULANG / GANTI DATA';
+  document.getElementById('cd-open-btn').style.display = 'block';
+  document.getElementById('cd-clear-btn').style.display = 'block';
+  btn.classList.add('has-data');
+}
+
+async function cdClearData() {
+  if (!confirm('Hapus semua chart data dari IndexedDB?')) return;
+  await NavHubDB.deleteChartData();
+  loaded['chart'] = false;
+  await cdRefreshUI();
+  toast('CHART DATA DIHAPUS');
+}
+
+/* ══════════════════════════════════════════
+   GPX DATA PANEL
+══════════════════════════════════════════ */
+// ── Drag & Drop GPX ──
+function gpxDragOver(e){ e.preventDefault(); document.getElementById('gpx-zone').classList.add('drag'); }
+function gpxDragLeave(e){ document.getElementById('gpx-zone').classList.remove('drag'); }
+function gpxDrop(e) {
+  e.preventDefault(); document.getElementById('gpx-zone').classList.remove('drag');
+  const file = e.dataTransfer.files[0]; if(file) gpxProcessFile(file);
+}
+function gpxLoadFile(input) {
+  const file = input.files[0]; if(file) gpxProcessFile(file); input.value='';
+}
+
+// ── Process + Save GPX ──
+function gpxProcessFile(file) {
+  document.getElementById('gpx-zone-txt').textContent = 'MEMPROSES...';
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const parsed = NavHubDB.parseGPXString(e.target.result);
+      await NavHubDB.saveGPX('main', {
+        fileName    : file.name,
+        waypoints   : parsed.waypoints,
+        trackPoints : parsed.trackPoints,
+        rawGPX      : e.target.result,
+      });
+      await gpxRefreshUI();
+      toast(`✓ GPX: ${parsed.waypoints.length} WPT · ${parsed.trackPoints.length} TRK`);
+      loaded['chart'] = false;
+    } catch(err) {
+      toast('GAGAL: FILE GPX TIDAK VALID');
+      document.getElementById('gpx-zone-txt').textContent = 'TAP ATAU DROP FILE GPX';
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ── Download GPX dari DB ──
+async function gpxDownload() {
+  const rec = await NavHubDB.getGPX('main');
+  if (!rec) { toast('TIDAK ADA GPX'); return; }
+  const content = rec.rawGPX || NavHubDB.generateGPXString(rec.waypoints, rec.fileName);
+  nhDownloadFile(rec.fileName || 'route.gpx', content, 'application/gpx+xml');
+}
+
+// ── Refresh GPX UI ──
+async function gpxRefreshUI() {
+  const rec = await NavHubDB.getGPX('main');
+  if (!rec) {
+    document.getElementById('gpx-st-dot').className = 'cd-st-dot';
+    document.getElementById('gpx-st-title').textContent = 'TIDAK ADA ROUTE';
+    document.getElementById('gpx-st-sub').textContent = 'Upload .gpx atau generate dari Chart Planner';
+    document.getElementById('gpx-info').classList.remove('show');
+    document.getElementById('gpx-dl-btn').style.display = 'none';
+    document.getElementById('gpx-clear-btn').style.display = 'none';
+    document.getElementById('gpx-zone-txt').textContent = 'TAP ATAU DROP FILE GPX';
+    return;
+  }
+  document.getElementById('gpx-st-dot').className = 'cd-st-dot loaded';
+  document.getElementById('gpx-st-title').textContent = 'ROUTE SIAP';
+  document.getElementById('gpx-st-sub').textContent = rec.fileName;
+  document.getElementById('gpx-wpt-cnt').textContent = rec.waypointCount;
+  document.getElementById('gpx-trk-cnt').textContent = rec.trackPointCount;
+  document.getElementById('gpx-fname').textContent = rec.fileName;
+  document.getElementById('gpx-info').classList.add('show');
+  document.getElementById('gpx-dl-btn').style.display = 'block';
+  document.getElementById('gpx-clear-btn').style.display = 'block';
+  document.getElementById('gpx-zone-txt').textContent = 'UPLOAD ULANG / GANTI GPX';
+}
+
+async function gpxClearData() {
+  if (!confirm('Hapus GPX route dari IndexedDB?')) return;
+  await NavHubDB.deleteGPX('main');
+  loaded['chart'] = false;
+  await gpxRefreshUI();
+  toast('GPX DIHAPUS');
+}
+
+/* ── INIT DB UI ── */
+cdRefreshUI();
+gpxRefreshUI();
 </script>
 </body>
 </html>
