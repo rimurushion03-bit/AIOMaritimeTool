@@ -23,6 +23,7 @@ body.night {
   --border:rgba(255,34,34,0.16); --border2:rgba(255,34,34,0.3);
   --accent:#ff2222; --adim:rgba(255,34,34,0.10); --aglow:rgba(255,34,34,0.22);
   --text:#ffaaaa; --muted:#4a1a1a; --muted2:#7a3232;
+  --success:#ff3333; --gold:#ff8800; --blue:#ff5555;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--fbody);}
@@ -54,7 +55,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   border-radius:7px;color:var(--muted2);font-family:var(--fmono);font-size:9px;letter-spacing:1px;
   cursor:pointer;transition:all .15s;flex-shrink:0;display:flex;align-items:center;gap:4px;}
 .hbtn:active,.hbtn.on{background:var(--adim);border-color:var(--accent);color:var(--accent);}
-.hbtn.gps-on{background:rgba(16,185,129,.15);border-color:var(--success);color:var(--success);}
+.hbtn.gps-on{background:var(--adim);border-color:var(--accent);color:var(--accent);}
 .hbtn.gps-searching{background:rgba(255,215,0,.1);border-color:var(--gold);color:var(--gold);}
 
 /* MORE MENU */
@@ -132,22 +133,27 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .dbtn:active{opacity:.7;}
 .dbtn.pri{background:var(--accent);border-color:var(--accent);color:var(--bg);}
 .dbtn.warn{background:var(--warn);border-color:var(--warn);color:#000;}
-.dbtn.sync{background:var(--success);border-color:var(--success);color:#fff;}
+.dbtn.sync{background:var(--accent);border-color:var(--accent);color:var(--bg);}
 
 
 /* TABLE WRAPPER */
 #tableWrap{flex:1;overflow:auto;position:relative;z-index:1;}
 table{width:100%;border-collapse:collapse;min-width:700px;}
 thead{position:sticky;top:0;z-index:10;}
-th{background:rgba(4,16,28,.97);color:var(--muted);font-family:var(--fmono);font-size:8px;
-  letter-spacing:1.5px;padding:6px 5px;border:1px solid var(--border);text-transform:uppercase;
+th{background:var(--ps);color:var(--muted2);font-family:var(--fmono);font-size:8px;
+  letter-spacing:1.5px;padding:7px 5px;border:1px solid var(--border2);text-transform:uppercase;
   white-space:nowrap;}
-td{padding:3px 4px;border:1px solid var(--border);font-size:11px;vertical-align:middle;transition:background .2s;}
+td{padding:5px 4px;border:1px solid var(--border);font-size:11px;vertical-align:middle;transition:background .2s;}
+tbody tr:nth-child(odd) td{background:rgba(255,255,255,0.02);}
+tbody tr:nth-child(even) td{background:rgba(0,0,0,0.15);}
+tbody tr:hover td{background:var(--adim) !important;}
 .td-act{width:36px;text-align:center;}
-.td-no{width:28px;text-align:center;font-family:var(--fhud);font-size:14px;color:var(--muted);}
-tr.active-row td{background:rgba(0,212,170,.08) !important;}
+.td-no{width:28px;text-align:center;font-family:var(--fhud);font-size:14px;color:var(--muted2);}
+tr.active-row td{background:rgba(0,212,170,.1) !important;border-color:rgba(0,212,170,.18);}
 tr.active-row .td-no{color:var(--accent);}
-body.night tr.active-row td{background:rgba(255,34,34,.08) !important;}
+body.night tr.active-row td{background:rgba(255,34,34,.1) !important;border-color:rgba(255,34,34,.18);}
+body.night tbody tr:nth-child(odd) td{background:rgba(255,0,0,0.03);}
+body.night tbody tr:nth-child(even) td{background:rgba(0,0,0,0.2);}
 tr.dtg-warn td{background:rgba(245,158,11,.12) !important;}
 tr.dtg-crit td{background:rgba(239,68,68,.2) !important;animation:dtgPulse 1.5s infinite;}
 @keyframes dtgPulse{0%,100%{background:rgba(239,68,68,.2)!important;}50%{background:rgba(239,68,68,.35)!important;}}
@@ -188,16 +194,17 @@ body.night .go-btn{background:var(--accent);}
 .ds-sep{width:1px;height:30px;background:var(--border);flex-shrink:0;}
 
 /* GPS BADGE */
-#gpsBadge{flex-shrink:0;background:rgba(16,185,129,.1);border:1px solid var(--success);
+#gpsBadge{flex-shrink:0;background:var(--adim);border:1px solid var(--accent);
   border-radius:8px;padding:4px 10px;display:none;flex-direction:column;gap:1px;}
 #gpsBadge.show{display:flex;}
-.gps-coord{font-family:var(--fmono);font-size:9px;color:var(--success);}
+.gps-coord{font-family:var(--fmono);font-size:9px;color:var(--accent);}
 .gps-acc{font-family:var(--fmono);font-size:7px;color:var(--muted2);}
+.gps-spd{font-family:var(--fhud);font-size:13px;color:var(--accent);line-height:1;}
 
 /* STATUS BAR */
 #statusBar{flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);
   padding:4px 12px;display:flex;align-items:center;gap:10px;z-index:490;}
-.sb-dot{width:6px;height:6px;border-radius:50%;background:var(--success);flex-shrink:0;}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;}
 .sb-dot.warn{background:var(--warn);}
 .sb-txt{font-family:var(--fmono);font-size:8px;color:var(--muted2);}
 .sb-sp{flex:1;}
@@ -385,7 +392,10 @@ body.night .go-btn{background:var(--accent);}
     <div id="gpsBadge">
       <div class="gps-coord" id="gpsLat">—</div>
       <div class="gps-coord" id="gpsLon">—</div>
-      <div class="gps-acc" id="gpsAcc">ACC: —</div>
+      <div style="display:flex;align-items:baseline;gap:5px;">
+        <span class="gps-spd" id="gpsSpd">—</span>
+        <span class="gps-acc" id="gpsAcc">KTS · ACC ±—m</span>
+      </div>
     </div>
     <div class="ds">
       <span class="ds-lbl">Remaining</span>
@@ -401,7 +411,7 @@ body.night .go-btn{background:var(--accent);}
     <div class="ds-sep"></div>
     <div class="ds">
       <span class="ds-lbl">Final ETA</span>
-      <span class="ds-val" id="etaDisplay" style="font-size:14px;color:var(--success);">-- : --</span>
+      <span class="ds-val" id="etaDisplay" style="font-size:14px;color:var(--accent);">-- : --</span>
     </div>
   </div>
 
@@ -549,6 +559,9 @@ let toastT = null;
 let gpsWatchId = null;
 let gpsActive = false;
 let lastGPS = null;
+let gpsSpeedBuffer = []; // rolling average 3 fix
+const GPS_SPEED_SAMPLES = 3;
+const GPS_SPEED_MIN_DIFF = 0.3; // knots, threshold update SOG
 
 // Route management
 let currentRouteId = null;
@@ -888,9 +901,22 @@ function startGPS() {
   gpsWatchId = navigator.geolocation.watchPosition(
     pos => {
       gpsActive = true;
-      lastGPS = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy };
+      const rawSpeedKts = (pos.coords.speed != null && !isNaN(pos.coords.speed))
+        ? pos.coords.speed * 1.94384 : null;
+      lastGPS = {
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude,
+        acc: pos.coords.accuracy,
+        speedKts: rawSpeedKts
+      };
+      // Rolling average speed
+      if (rawSpeedKts !== null) {
+        gpsSpeedBuffer.push(rawSpeedKts);
+        if (gpsSpeedBuffer.length > GPS_SPEED_SAMPLES) gpsSpeedBuffer.shift();
+      }
       updateGPSDisplay();
       updateDTGFromGPS();
+      updateSOGFromGPS();
       btn.className = 'hbtn gps-on';
       btn.textContent = '📡 GPS ON';
     },
@@ -906,7 +932,7 @@ function startGPS() {
 
 function stopGPS() {
   if (gpsWatchId !== null) navigator.geolocation.clearWatch(gpsWatchId);
-  gpsWatchId = null; gpsActive = false; lastGPS = null;
+  gpsWatchId = null; gpsActive = false; lastGPS = null; gpsSpeedBuffer = [];
   document.getElementById('gpsBtn').className = 'hbtn';
   document.getElementById('gpsBtn').textContent = '📡 GPS';
   document.getElementById('gpsBadge').classList.remove('show');
@@ -918,7 +944,23 @@ function updateGPSDisplay() {
   document.getElementById('gpsBadge').classList.add('show');
   document.getElementById('gpsLat').textContent = fmtCoordStr(lastGPS.lat, true);
   document.getElementById('gpsLon').textContent = fmtCoordStr(lastGPS.lon, false);
-  document.getElementById('gpsAcc').textContent = 'ACC: ±' + Math.round(lastGPS.acc) + 'm';
+  const avgSpd = gpsSpeedBuffer.length
+    ? (gpsSpeedBuffer.reduce((a,b)=>a+b,0) / gpsSpeedBuffer.length).toFixed(1)
+    : '—';
+  document.getElementById('gpsSpd').textContent = avgSpd;
+  document.getElementById('gpsAcc').textContent = `KTS · ACC ±${Math.round(lastGPS.acc)}m`;
+}
+
+function updateSOGFromGPS() {
+  if (!gpsSpeedBuffer.length) return;
+  // Hanya update kalau accuracy cukup baik
+  if (lastGPS.acc > 50) return;
+  const avgSpd = gpsSpeedBuffer.reduce((a,b)=>a+b,0) / gpsSpeedBuffer.length;
+  const currentSOG = parseFloat(document.getElementById('shipSpeed').value) || 0;
+  // Hanya update kalau selisih > threshold
+  if (Math.abs(avgSpd - currentSOG) < GPS_SPEED_MIN_DIFF) return;
+  document.getElementById('shipSpeed').value = avgSpd.toFixed(1);
+  calculateAll();
 }
 
 function updateDTGFromGPS() {
