@@ -120,7 +120,7 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
 
 .sb-stor{font-family:var(--fmono);font-size:8px;color:var(--muted2);margin-bottom:10px;}
 .sb-stor-bar{width:100%;height:3px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-top:4px;}
-.sb-stor-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .5s,background .3s;}
+.sb-stor-fill{height:100%;width:0%;background:var(--accent);border-radius:3px;transition:width .5s,background .3s;}
 .sb-stor-fill.warn{background:var(--warn);} .sb-stor-fill.danger{background:var(--danger);}
 
 .sb-acts{display:flex;gap:8px;margin-bottom:12px;}
@@ -133,12 +133,13 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
 .sb-copy{font-family:var(--fmono);font-size:7px;letter-spacing:2px;color:var(--muted);text-align:center;}
 
 /* ═══════════ CHART DATA PANEL ═══════════ */
-#cd-panel{position:fixed;top:0;left:-295px;width:295px;height:100%;
+#cd-panel{position:fixed;top:0;left:0;width:100%;max-width:320px;height:100%;
   background:var(--panel);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
-  border-right:1px solid var(--border2);z-index:7000;
+  border-right:1px solid var(--border2);z-index:8000;
   display:flex;flex-direction:column;
-  transition:left .38s cubic-bezier(.4,0,.2,1);}
-#cd-panel.open{left:295px;}
+  transform:translateX(-110%);
+  transition:transform .38s cubic-bezier(.4,0,.2,1);}
+#cd-panel.open{transform:translateX(0);}
 
 .cd-head{padding:46px 22px 16px;
   background:linear-gradient(to bottom,rgba(74,158,255,.08),transparent);
@@ -543,6 +544,12 @@ const MODS = {
   passage: {file:'modules/passage-monitoring.html', title:'PASSAGE MONITORING', sub:'WAYPOINT & ETA TRACKER'},
 };
 let cur = 'home', loaded = {}, nightOn = false, toastTmr;
+let cdPanelOpen = false;
+let tbHideTimer, tbVisible = true, lastTouchY = 0;
+const LAYER_COLORS_HUB = {
+  GENERAL:'#4a9eff', OVERVIEW:'#00d4aa', COASTAL:'#ff8c42',
+  APPROACH:'#a78bfa', HARBOUR:'#ffd700', BERTHING:'#ff6b6b'
+};
 
 /* ── SPLASH ── */
 (()=>{
@@ -556,7 +563,11 @@ let cur = 'home', loaded = {}, nightOn = false, toastTmr;
 })();
 
 /* ── SIDEBAR ── */
-function openSB(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('show'); }
+function openSB(){ 
+  document.getElementById('sidebar').classList.add('open'); 
+  document.getElementById('overlay').classList.add('show');
+  if(typeof showTB === 'function') showTB();
+}
 function closeSB(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
 
 /* ── NAVIGATE ── */
@@ -624,15 +635,20 @@ function toggleNight(){
   document.body.classList.toggle('night',nightOn);
   const b=document.getElementById('night-btn');
   b.classList.toggle('on',nightOn); b.textContent=nightOn?'☀ DAY':'🌙 NIGHT';
-  NavHubDB.saveSetting('night-mode', nightOn);
-  // Sync ke iframe yang sedang aktif
+  if (typeof NavHubDB !== 'undefined') NavHubDB.saveSetting('night-mode', nightOn);
+  else localStorage.setItem('nh-night', nightOn?'1':'0');
   try{ document.getElementById('mod-frame').contentWindow.postMessage({type:'night',value:nightOn},'*'); }catch(e){}
   toast(nightOn?'NIGHT MODE ON':'DAY MODE');
 }
 // Restore night mode dari IndexedDB
-NavHubDB.getSetting('night-mode', false).then(val => {
-  if(val){ nightOn=true; document.body.classList.add('night'); const b=document.getElementById('night-btn'); b.classList.add('on'); b.textContent='☀ DAY'; }
-});
+if (typeof NavHubDB !== 'undefined') {
+  NavHubDB.getSetting('night-mode', false).then(val => {
+    if(val){ nightOn=true; document.body.classList.add('night'); const b=document.getElementById('night-btn'); b.classList.add('on'); b.textContent='☀ DAY'; }
+  });
+} else {
+  // fallback localStorage
+  if(localStorage.getItem('nh-night')==='1'){ nightOn=true; document.body.classList.add('night'); const b=document.getElementById('night-btn'); b.classList.add('on'); b.textContent='☀ DAY'; }
+}
 
 /* ── FULLSCREEN ── */
 function toggleFS(){
@@ -644,14 +660,20 @@ function toggleFS(){
 /* ── STORAGE (IndexedDB size estimate) ── */
 async function updStor(){
   try{
+    if (typeof NavHubDB === 'undefined') return;
+    const el = document.getElementById('stor-pct');
+    const b  = document.getElementById('stor-bar');
+    if (!el || !b) return;
     const s = await NavHubDB.getDBSize();
-    document.getElementById('stor-pct').textContent = s.pct;
-    const b = document.getElementById('stor-bar');
+    el.textContent = s.pct;
     b.style.width = Math.min(parseFloat(s.pct),100)+'%';
     b.className = 'sb-stor-fill'+(parseFloat(s.pct)>85?' danger':parseFloat(s.pct)>65?' warn':'');
   }catch(e){}
 }
-updStor(); setInterval(updStor,15000);
+document.addEventListener('DOMContentLoaded', () => {
+  updStor();
+  setInterval(updStor, 15000);
+});
 
 /* ── TOAST ── */
 function toast(msg){
@@ -670,7 +692,6 @@ window.addEventListener('popstate',()=>{
 showHome();
 
 /* ── TOPBAR AUTO-HIDE ── */
-let tbHideTimer, tbVisible=true, lastTouchY=0;
 
 function showTB(){
   clearTimeout(tbHideTimer);
@@ -708,14 +729,7 @@ document.addEventListener('mousemove', e=>{
   if(e.clientY < 60) showTB();
 });
 
-// Always show when sidebar opens
-const _origOpenSB = openSB;
-window.openSB = openSB;
-function openSB(){
-  document.getElementById('sidebar').classList.add('open');
-  document.getElementById('overlay').classList.add('show');
-  showTB();
-}
+// Always show when sidebar opens — showTB dipanggil dari openSB asli
 
 // Kick off first hide after 4s
 setTimeout(()=>showTB(), 4000);
@@ -754,16 +768,20 @@ function nhDownloadFile(fileName, content, mime) {
 /* ══════════════════════════════════════════
    CHART DATA PANEL
 ══════════════════════════════════════════ */
-const LAYER_COLORS_HUB = {
-  GENERAL:'#4a9eff', OVERVIEW:'#00d4aa', COASTAL:'#ff8c42',
-  APPROACH:'#a78bfa', HARBOUR:'#ffd700', BERTHING:'#ff6b6b'
-};
-let cdPanelOpen = false;
 
 function toggleCDPanel() {
   cdPanelOpen = !cdPanelOpen;
   document.getElementById('cd-panel').classList.toggle('open', cdPanelOpen);
-  if (cdPanelOpen) { cdRefreshUI(); gpxRefreshUI(); }
+  // Tutup sidebar saat panel dibuka, pakai overlay yang sama
+  if (cdPanelOpen) {
+    closeSB();
+    document.getElementById('overlay').classList.add('show');
+    document.getElementById('overlay').onclick = () => { toggleCDPanel(); };
+    cdRefreshUI(); gpxRefreshUI();
+  } else {
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('overlay').onclick = () => { closeSB(); };
+  }
 }
 
 // ── Drag & Drop Chart ──
@@ -797,8 +815,17 @@ function cdProcessFile(file) {
 
 // ── Refresh Chart UI ──
 async function cdRefreshUI() {
-  const rec = await NavHubDB.getChartData();
   const btn = document.getElementById('cd-btn');
+  // Guard: NavHubDB belum tersedia (file:// protocol)
+  if (typeof NavHubDB === 'undefined') {
+    document.getElementById('cd-st-dot').className = 'cd-st-dot';
+    document.getElementById('cd-st-title').textContent = 'DB TIDAK TERSEDIA';
+    document.getElementById('cd-st-sub').textContent = 'Buka via server (bukan file://)';
+    btn.classList.remove('has-data');
+    return;
+  }
+
+  const rec = await NavHubDB.getChartData();
 
   if (!rec) {
     document.getElementById('cd-st-dot').className = 'cd-st-dot';
@@ -906,6 +933,7 @@ async function gpxDownload() {
 
 // ── Refresh GPX UI ──
 async function gpxRefreshUI() {
+  if (typeof NavHubDB === 'undefined') return;
   const rec = await NavHubDB.getGPX('main');
   if (!rec) {
     document.getElementById('gpx-st-dot').className = 'cd-st-dot';
@@ -938,8 +966,10 @@ async function gpxClearData() {
 }
 
 /* ── INIT DB UI ── */
-cdRefreshUI();
-gpxRefreshUI();
+document.addEventListener('DOMContentLoaded', () => {
+  cdRefreshUI();
+  gpxRefreshUI();
+});
 </script>
 </body>
 </html>
