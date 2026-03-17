@@ -153,7 +153,8 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
 .tb-sub{font-family:var(--fmono);font-size:8px;letter-spacing:1px;color:var(--muted2);}
 
 /* ═══════════ MAIN ═══════════ */
-#main{position:relative;z-index:1;width:100%;height:100dvh;padding-top:52px;}
+#main{position:relative;z-index:1;width:100%;height:100dvh;padding-top:52px;transition:padding-top .35s;}
+#main.mod-active{padding-top:0;}
 
 /* ═══════════ HOME ═══════════ */
 #home{display:none;width:100%;height:100%;overflow-y:auto;padding:20px 16px 36px;}
@@ -385,6 +386,7 @@ function showHome(){
   document.getElementById('home').classList.add('active');
   document.getElementById('mod-view').classList.remove('active');
   document.getElementById('mod-view').style.display='none';
+  document.getElementById('main').classList.remove('mod-active');
   setTB('NAVHUB','MARITIME NAVIGATION SUITE');
 }
 
@@ -393,6 +395,7 @@ function loadMod(id){
   document.getElementById('home').classList.remove('active');
   const mv = document.getElementById('mod-view');
   mv.style.display='block'; mv.classList.add('active');
+  document.getElementById('main').classList.add('mod-active');
   setTB(m.title, m.sub);
   const fr = document.getElementById('mod-frame');
   if(loaded[id] && fr.dataset.cur===id) return;
