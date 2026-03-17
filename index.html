@@ -137,7 +137,8 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
   background:var(--panel);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
   border-bottom:1px solid var(--border);
   display:flex;align-items:center;gap:10px;padding:0 14px;
-  transition:border-color .4s;}
+  transition:transform .35s cubic-bezier(.4,0,.2,1), border-color .4s, opacity .35s;}
+#topbar.hidden{transform:translateY(-100%);opacity:0;}
 #topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
   background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.35;}
 
@@ -465,6 +466,57 @@ window.addEventListener('popstate',()=>{
 
 /* ── INIT ── */
 showHome();
+
+/* ── TOPBAR AUTO-HIDE ── */
+let tbHideTimer, tbVisible=true, lastTouchY=0;
+
+function showTB(){
+  clearTimeout(tbHideTimer);
+  document.getElementById('topbar').classList.remove('hidden');
+  tbVisible=true;
+  tbHideTimer=setTimeout(()=>{
+    // Don't hide if sidebar is open
+    if(!document.getElementById('sidebar').classList.contains('open')){
+      document.getElementById('topbar').classList.add('hidden');
+      tbVisible=false;
+    }
+  },3000);
+}
+
+// Touch: swipe down from top OR tap anywhere wakes topbar
+document.addEventListener('touchstart', e=>{
+  lastTouchY = e.touches[0].clientY;
+  // Tap in top 30px area always wakes
+  if(lastTouchY < 30) showTB();
+}, {passive:true});
+
+document.addEventListener('touchmove', e=>{
+  const dy = e.touches[0].clientY - lastTouchY;
+  // Swipe down (dy > 12) wakes topbar
+  if(dy > 12) showTB();
+}, {passive:true});
+
+// Tap anywhere wakes topbar too (brief tap only)
+document.addEventListener('touchend', e=>{
+  if(!tbVisible) showTB();
+}, {passive:true});
+
+// Mouse: move near top wakes it
+document.addEventListener('mousemove', e=>{
+  if(e.clientY < 60) showTB();
+});
+
+// Always show when sidebar opens
+const _origOpenSB = openSB;
+window.openSB = openSB;
+function openSB(){
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('overlay').classList.add('show');
+  showTB();
+}
+
+// Kick off first hide after 4s
+setTimeout(()=>showTB(), 4000);
 </script>
 </body>
-</html
+</html>
