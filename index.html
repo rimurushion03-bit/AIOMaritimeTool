@@ -224,6 +224,8 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
   display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .18s;}
 .tb-btn:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
 .tb-btn:active{transform:scale(.93);}
+.tb-btn.gps-on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+.tb-btn.gps-search{background:rgba(255,215,0,.1);border-color:var(--gold);color:var(--gold);}
 
 .tb-title-wrap{flex:1;}
 .tb-title{font-family:var(--fhud);font-size:21px;letter-spacing:4px;color:var(--accent);line-height:1;}
@@ -375,6 +377,7 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
     <div class="tb-title" id="tb-t">NAVHUB</div>
     <div class="tb-sub" id="tb-s">MARITIME NAVIGATION SUITE</div>
   </div>
+  <button class="tb-btn" id="tb-gps" onclick="toggleHubGPS()" title="GPS" style="font-size:13px;font-family:var(--fmono);">📡</button>
   <button class="tb-btn" id="tb-home" onclick="go('home')" title="Home" style="display:none">⌂</button>
 </div>
 
@@ -389,7 +392,7 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
     <div class="h-strip">
       <div class="h-pill"><div class="h-dot"></div>SYSTEM ONLINE</div>
       <div class="h-pill"><div class="h-dot warn"></div><span id="utc-pill">UTC --:--</span></div>
-      <div class="h-pill"><div class="h-dot off"></div>GPS OFFLINE</div>
+      <div class="h-pill"><div class="h-dot off" id="gps-hub-dot"></div><span id="gps-hub-pill">GPS OFFLINE</span></div>
     </div>
 
     <div class="h-sec">// Active Modules</div>
@@ -603,8 +606,11 @@ function loadMod(id){
   fr.src = m.file; fr.dataset.cur = id;
   fr.onload = ()=>{
     loaded[id]=true; hideLd();
-    // Expose switchModule to iframe so ⊞ button works
     try{ fr.contentWindow.switchModule = go; }catch(e){}
+    // Kirim posisi GPS terakhir ke modul yang baru dibuka
+    broadcastLastGPS();
+    // Kirim night mode state
+    try{ fr.contentWindow.postMessage({type:'navhub-night',night:nightOn},'*'); }catch(e){}
   };
   setTimeout(hideLd,7000);
 }
@@ -654,6 +660,95 @@ function toggleFS(){
   if(!document.fullscreenElement&&!document.webkitFullscreenElement)
     (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen).call(document.documentElement);
   else (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+}
+
+/* ── GPS HUB ── */
+let hubGpsWatchId = null;
+let hubGpsActive = false;
+let hubGpsSpeedBuf = [];
+const HUB_GPS_SAMPLES = 3;
+const HUB_GPS_SPEED_DIFF = 0.3;
+
+function toggleHubGPS() {
+  if (hubGpsActive) stopHubGPS();
+  else startHubGPS();
+}
+
+function startHubGPS() {
+  if (!navigator.geolocation) { toast('GPS TIDAK TERSEDIA'); return; }
+  const btn = document.getElementById('tb-gps');
+  btn.className = 'tb-btn gps-search';
+  btn.textContent = '🔍';
+  hubGpsWatchId = navigator.geolocation.watchPosition(
+    pos => {
+      hubGpsActive = true;
+      const rawSpd = pos.coords.speed != null ? pos.coords.speed * 1.94384 : null;
+      if (rawSpd !== null) {
+        hubGpsSpeedBuf.push(rawSpd);
+        if (hubGpsSpeedBuf.length > HUB_GPS_SAMPLES) hubGpsSpeedBuf.shift();
+      }
+      const avgSpd = hubGpsSpeedBuf.length
+        ? hubGpsSpeedBuf.reduce((a,b)=>a+b,0)/hubGpsSpeedBuf.length : null;
+      const gpsData = {
+        type: 'gps-update',
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude,
+        acc: pos.coords.accuracy,
+        speedKts: avgSpd,
+        ts: Date.now()
+      };
+      // Broadcast ke iframe aktif
+      try { document.getElementById('mod-frame').contentWindow.postMessage(gpsData,'*'); } catch(e){}
+      // Simpan ke NavHubDB
+      try { NavHubDB.saveSetting('gps-last-position', gpsData); } catch(e){}
+      // Update UI
+      btn.className = 'tb-btn gps-on';
+      btn.textContent = '📡';
+      setGPSPill(true, pos.coords.accuracy);
+    },
+    err => {
+      toast('GPS: ' + err.message.substring(0,25));
+      btn.className = 'tb-btn';
+      btn.textContent = '📡';
+      hubGpsActive = false;
+      setGPSPill(false);
+    },
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+  );
+}
+
+function stopHubGPS() {
+  if (hubGpsWatchId !== null) navigator.geolocation.clearWatch(hubGpsWatchId);
+  hubGpsWatchId = null; hubGpsActive = false; hubGpsSpeedBuf = [];
+  document.getElementById('tb-gps').className = 'tb-btn';
+  document.getElementById('tb-gps').textContent = '📡';
+  setGPSPill(false);
+  try { NavHubDB.saveSetting('gps-active', false); } catch(e){}
+  toast('GPS OFF');
+}
+
+function setGPSPill(on, acc) {
+  const dot = document.getElementById('gps-hub-dot');
+  const pill = document.getElementById('gps-hub-pill');
+  if (!dot || !pill) return;
+  if (on) {
+    dot.className = 'h-dot';
+    pill.textContent = acc ? `GPS ±${Math.round(acc)}m` : 'GPS ONLINE';
+  } else {
+    dot.className = 'h-dot off';
+    pill.textContent = 'GPS OFFLINE';
+  }
+}
+
+// Saat ganti modul, kirim posisi terakhir ke iframe baru
+function broadcastLastGPS() {
+  if (!hubGpsActive) return;
+  try {
+    NavHubDB.getSetting('gps-last-position', null).then(pos => {
+      if (!pos) return;
+      try { document.getElementById('mod-frame').contentWindow.postMessage({...pos, type:'gps-update'},'*'); } catch(e){}
+    });
+  } catch(e){}
 }
 
 /* ── STORAGE (IndexedDB size estimate) ── */
@@ -739,10 +834,11 @@ setTimeout(()=>showTB(), 4000);
 window.addEventListener('message', e => {
   const d = e.data; if(!d||!d.type) return;
   switch(d.type) {
-    case 'nh-chart-saved':  loaded['chart']=false; cdRefreshUI();  toast('✓ CHART DATA DIPERBARUI'); break;
-    case 'nh-gpx-saved':    loaded['chart']=false; gpxRefreshUI(); toast('✓ ROUTE GPX DISIMPAN');    break;
-    case 'nh-route-saved':  break; // future use
-    case 'nh-download-gpx': nhDownloadGPX(d.fileName, d.content); break;
+    case 'nh-chart-saved':    loaded['chart']=false; cdRefreshUI();  toast('✓ CHART DATA DIPERBARUI'); break;
+    case 'nh-gpx-saved':      loaded['chart']=false; gpxRefreshUI(); toast('✓ ROUTE GPX DISIMPAN');    break;
+    case 'nh-route-saved':    break;
+    case 'nh-download-gpx':   nhDownloadGPX(d.fileName, d.content); break;
+    case 'navhub-gps-toggle': toggleHubGPS(); break;
   }
 });
 
