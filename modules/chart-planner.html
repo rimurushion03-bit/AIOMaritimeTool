@@ -850,8 +850,53 @@ async function deleteChain(id){
   renderSavedTab();
 }
 
+/* ─── VESSEL POSITION (dari NavHubDB) ─── */
+let vesselMarker = null;
+let vesselPollInterval = null;
+
+function startVesselTracking() {
+  if (vesselPollInterval) return;
+  pollVesselPosition(); // langsung cek sekali
+  vesselPollInterval = setInterval(pollVesselPosition, 5000);
+}
+
+function stopVesselTracking() {
+  if (vesselPollInterval) clearInterval(vesselPollInterval);
+  vesselPollInterval = null;
+  if (vesselMarker) { map.removeLayer(vesselMarker); vesselMarker = null; }
+}
+
+async function pollVesselPosition() {
+  try {
+    const pos = await NavHubDB.getSetting('gps-last-position', null);
+    if (!pos || !pos.lat || !pos.lon) return;
+    // Abaikan posisi yang lebih dari 5 menit lalu
+    if (Date.now() - pos.ts > 5 * 60 * 1000) {
+      if (vesselMarker) { map.removeLayer(vesselMarker); vesselMarker = null; }
+      return;
+    }
+    const spdTxt = pos.speedKts != null ? `${pos.speedKts.toFixed(1)} kts` : '';
+    const accTxt = pos.acc ? `±${Math.round(pos.acc)}m` : '';
+    const html = `<div style="pointer-events:none;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <div style="font-size:18px;line-height:1;filter:drop-shadow(0 0 4px rgba(0,212,170,.8));">⬡</div>
+      <div style="background:rgba(4,16,28,.9);border:1px solid #00d4aa;color:#00d4aa;font-family:monospace;font-size:8px;padding:1px 5px;border-radius:3px;white-space:nowrap;">${spdTxt}${spdTxt&&accTxt?' · ':''}${accTxt}</div>
+    </div>`;
+    const icon = L.divIcon({className:'',html,iconSize:[0,0],iconAnchor:[0,0]});
+    if (vesselMarker) {
+      vesselMarker.setLatLng([pos.lat, pos.lon]);
+      vesselMarker.setIcon(icon);
+    } else {
+      vesselMarker = L.marker([pos.lat, pos.lon], {icon, interactive:false, zIndexOffset:2000}).addTo(map);
+    }
+  } catch(e) {}
+}
+
 /* ─── INIT ─── */
-document.addEventListener('DOMContentLoaded',()=>{autoLoadChartData();syncRouteBtn();});
+document.addEventListener('DOMContentLoaded',()=>{
+  autoLoadChartData();
+  syncRouteBtn();
+  startVesselTracking();
+});
 </script>
 </body>
 </html>
