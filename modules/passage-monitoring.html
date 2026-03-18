@@ -591,6 +591,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (document.querySelectorAll('#tbody tr').length === 0) {
     addRow(); addRow(); addRow();
   }
+  // Auto-resume GPS kalau sebelumnya aktif
+  try {
+    const wasActive = await NavHubDB.getSetting('gps-active', false);
+    if (wasActive) startGPS();
+  } catch(e) {}
 });
 
 // ══════════════════════════════════════════════
@@ -917,6 +922,15 @@ function startGPS() {
       updateGPSDisplay();
       updateDTGFromGPS();
       updateSOGFromGPS();
+      // Simpan posisi ke NavHubDB
+      try {
+        NavHubDB.saveSetting('gps-last-position', {
+          lat: lastGPS.lat, lon: lastGPS.lon,
+          acc: lastGPS.acc, speedKts: rawSpeedKts,
+          ts: Date.now()
+        });
+        NavHubDB.saveSetting('gps-active', true);
+      } catch(e) {}
       btn.className = 'hbtn gps-on';
       btn.textContent = '📡 GPS ON';
     },
@@ -925,6 +939,7 @@ function startGPS() {
       btn.className = 'hbtn';
       btn.textContent = '📡 GPS';
       gpsActive = false;
+      try { NavHubDB.saveSetting('gps-active', false); } catch(e) {}
     },
     { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
   );
@@ -936,6 +951,7 @@ function stopGPS() {
   document.getElementById('gpsBtn').className = 'hbtn';
   document.getElementById('gpsBtn').textContent = '📡 GPS';
   document.getElementById('gpsBadge').classList.remove('show');
+  try { NavHubDB.saveSetting('gps-active', false); } catch(e) {}
   toast('GPS OFF');
 }
 
