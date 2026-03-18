@@ -488,9 +488,6 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
     </button>
 
     <!-- Actions Chart -->
-    <button class="cd-btn primary" id="cd-open-btn" onclick="go('chart');closeSB();toggleCDPanel();" style="display:none">
-      🗺 &nbsp;BUKA CHART PLANNER
-    </button>
     <div style="display:flex;gap:6px;">
       <button class="cd-btn" id="cd-upload-btn" onclick="cdToggleUpload()" style="display:none;flex:1;background:transparent;border-color:var(--border2);color:var(--muted2);">
         ⬆ &nbsp;GANTI DATA
@@ -927,7 +924,7 @@ async function cdRefreshUI() {
     document.getElementById('cd-st-title').textContent = 'TIDAK ADA DATA';
     document.getElementById('cd-st-sub').textContent = 'Upload file JSON chart index';
     document.getElementById('cd-info').classList.remove('show');
-    document.getElementById('cd-open-btn').style.display = 'none';
+  document.getElementById('cd-open-btn') && (document.getElementById('cd-open-btn').style.display = 'none');
     document.getElementById('cd-clear-btn').style.display = 'none';
     document.getElementById('cd-upload-btn').style.display = 'none';
     document.getElementById('cd-layers-toggle').style.display = 'none';
@@ -966,11 +963,12 @@ async function cdRefreshUI() {
       </div>
     </div>`;
   }).join('');
-  // Layer breakdown tersembunyi by default
+  layerBreakdownOpen = false;
+  document.getElementById('cd-layers-wrap').style.maxHeight = '0';
   document.getElementById('cd-layers-toggle').style.display = 'block';
-  document.getElementById('cd-zone').style.display = 'none'; // sembunyi kalau ada data
+  document.getElementById('cd-layers-toggle').textContent = '▼  LIHAT PER LAYER';
+  document.getElementById('cd-zone').style.display = 'none';
   document.getElementById('cd-upload-btn').style.display = 'block';
-  document.getElementById('cd-open-btn').style.display = 'block';
   document.getElementById('cd-clear-btn').style.display = 'block';
   btn.classList.add('has-data');
 }
