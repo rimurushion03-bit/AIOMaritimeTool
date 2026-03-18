@@ -623,11 +623,11 @@ window.switchModule = go;
 /* ── CLOCK ── */
 function tick(){
   const n=new Date();
-  const hh=String(n.getUTCHours()).padStart(2,'0'),mm=String(n.getUTCMinutes()).padStart(2,'0'),ss=String(n.getUTCSeconds()).padStart(2,'0');
+  const hh=String(n.getHours()).padStart(2,'0'),mm=String(n.getMinutes()).padStart(2,'0'),ss=String(n.getSeconds()).padStart(2,'0');
   const D=['SUN','MON','TUE','WED','THU','FRI','SAT'],M=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
   document.getElementById('clk-t').textContent=`${hh}:${mm}:${ss}`;
-  document.getElementById('clk-d').textContent=`${D[n.getUTCDay()]} ${String(n.getUTCDate()).padStart(2,'0')} ${M[n.getUTCMonth()]} ${n.getUTCFullYear()} UTC`;
-  document.getElementById('utc-pill').textContent=`UTC ${hh}:${mm}`;
+  document.getElementById('clk-d').textContent=`${D[n.getDay()]} ${String(n.getDate()).padStart(2,'0')} ${M[n.getMonth()]} ${n.getFullYear()}`;
+  document.getElementById('utc-pill').textContent=`${hh}:${mm}`;
   const h=n.getHours(); let g='PAGI';
   if(h>=11&&h<15)g='SIANG'; else if(h>=15&&h<19)g='SORE'; else if(h>=19||h<5)g='MALAM';
   document.getElementById('greet-w').textContent=g;
@@ -981,7 +981,7 @@ function toggleLayerBreakdown() {
   const wrap = document.getElementById('cd-layers-wrap');
   const btn = document.getElementById('cd-layers-toggle');
   if (layerBreakdownOpen) {
-    wrap.style.maxHeight = wrap.scrollHeight + 'px';
+    wrap.style.maxHeight = '400px';
     btn.textContent = '▲  SEMBUNYIKAN LAYER';
   } else {
     wrap.style.maxHeight = '0';
