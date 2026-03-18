@@ -479,13 +479,8 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
       </div>
     </div>
 
-    <!-- Layer breakdown (collapsible, hidden by default) -->
-    <div id="cd-layers-wrap" style="overflow:hidden;max-height:0;transition:max-height .3s ease;">
-      <div class="cd-layers" id="cd-layers" style="padding-top:6px;"></div>
-    </div>
-    <button id="cd-layers-toggle" onclick="toggleLayerBreakdown()" style="display:none;width:100%;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted2);font-family:var(--fmono);font-size:8px;letter-spacing:1px;padding:5px;cursor:pointer;margin-bottom:8px;transition:all .15s;">
-      ▼ &nbsp;LIHAT PER LAYER
-    </button>
+    <!-- Layer breakdown -->
+    <div class="cd-layers" id="cd-layers"></div>
 
     <!-- Actions Chart -->
     <div style="display:flex;gap:6px;">
@@ -927,8 +922,7 @@ async function cdRefreshUI() {
   document.getElementById('cd-open-btn') && (document.getElementById('cd-open-btn').style.display = 'none');
     document.getElementById('cd-clear-btn').style.display = 'none';
     document.getElementById('cd-upload-btn').style.display = 'none';
-    document.getElementById('cd-layers-toggle').style.display = 'none';
-    document.getElementById('cd-zone').style.display = 'block'; // tampil kalau kosong
+    document.getElementById('cd-zone').style.display = 'block';
     btn.classList.remove('has-data');
     return;
   }
@@ -946,10 +940,7 @@ async function cdRefreshUI() {
   document.getElementById('cd-date').textContent = dateStr;
   document.getElementById('cd-info').classList.add('show');
 
-  const lc = rec.layerCounts || {};
-  const maxCount = Math.max(...Object.values(lc), 1);
-  const layerEl = document.getElementById('cd-layers');
-  layerEl.innerHTML = Object.entries(lc).map(([name, count]) => {
+  document.getElementById('cd-layers').innerHTML = Object.entries(lc).map(([name, count]) => {
     const color = LAYER_COLORS_HUB[name] || '#888';
     const pct = Math.round((count / maxCount) * 100);
     return `<div class="cd-layer-row">
@@ -963,28 +954,10 @@ async function cdRefreshUI() {
       </div>
     </div>`;
   }).join('');
-  layerBreakdownOpen = false;
-  document.getElementById('cd-layers-wrap').style.maxHeight = '0';
-  document.getElementById('cd-layers-toggle').style.display = 'block';
-  document.getElementById('cd-layers-toggle').textContent = '▼  LIHAT PER LAYER';
   document.getElementById('cd-zone').style.display = 'none';
   document.getElementById('cd-upload-btn').style.display = 'block';
   document.getElementById('cd-clear-btn').style.display = 'block';
   btn.classList.add('has-data');
-}
-
-let layerBreakdownOpen = false;
-function toggleLayerBreakdown() {
-  layerBreakdownOpen = !layerBreakdownOpen;
-  const wrap = document.getElementById('cd-layers-wrap');
-  const btn = document.getElementById('cd-layers-toggle');
-  if (layerBreakdownOpen) {
-    wrap.style.maxHeight = '400px';
-    btn.textContent = '▲  SEMBUNYIKAN LAYER';
-  } else {
-    wrap.style.maxHeight = '0';
-    btn.textContent = '▼  LIHAT PER LAYER';
-  }
 }
 
 function cdToggleUpload() {
