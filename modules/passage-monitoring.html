@@ -556,12 +556,12 @@ let autoSaveInterval = null;
 let wakeLock = null;
 let lastTPResult = null;
 let toastT = null;
-let gpsWatchId = null;
+let gpsWatchId = null; // legacy, tidak dipakai lagi
 let gpsActive = false;
 let lastGPS = null;
-let gpsSpeedBuffer = []; // rolling average 3 fix
+let gpsSpeedBuffer = [];
 const GPS_SPEED_SAMPLES = 3;
-const GPS_SPEED_MIN_DIFF = 0.3; // knots, threshold update SOG
+const GPS_SPEED_MIN_DIFF = 0.3;
 
 // Route management
 let currentRouteId = null;
@@ -575,12 +575,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   startClock();
   startAutoSave();
   requestWakeLock();
-  // Night mode sync from parent
   window.addEventListener('message', e => {
-    if (e.data && (e.data.type === 'night' || e.data.type === 'navhub-night'))
+    if (!e.data || !e.data.type) return;
+    if (e.data.type === 'night' || e.data.type === 'navhub-night')
       document.body.classList.toggle('night', e.data.value ?? e.data.night);
+    if (e.data.type === 'gps-update')
+      handleGPSUpdate(e.data);
   });
-  // Close context menu
   document.addEventListener('click', e => {
     if (!e.target.closest('#ctxMenu')) document.getElementById('ctxMenu').style.display = 'none';
   });
@@ -591,11 +592,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (document.querySelectorAll('#tbody tr').length === 0) {
     addRow(); addRow(); addRow();
   }
-  // Auto-resume GPS kalau sebelumnya aktif
-  try {
-    const wasActive = await NavHubDB.getSetting('gps-active', false);
-    if (wasActive) startGPS();
-  } catch(e) {}
 });
 
 // ══════════════════════════════════════════════
@@ -898,61 +894,40 @@ function toggleGPS() {
   else startGPS();
 }
 
-function startGPS() {
-  if (!navigator.geolocation) { toast('GPS TIDAK TERSEDIA'); return; }
+// ══════════════════════════════════════════════
+//  GPS — DATA DARI NAVHUB PARENT
+// ══════════════════════════════════════════════
+function toggleGPS() {
+  // Minta parent NavHub toggle GPS
+  try { window.parent.postMessage({type:'navhub-gps-toggle'},'*'); } catch(e) {}
+  toast('GPS: TOGGLE DARI NAVHUB');
+}
+
+function handleGPSUpdate(data) {
+  gpsActive = true;
+  lastGPS = { lat: data.lat, lon: data.lon, acc: data.acc, speedKts: data.speedKts };
+  // Rolling speed buffer
+  if (data.speedKts != null) {
+    gpsSpeedBuffer.push(data.speedKts);
+    if (gpsSpeedBuffer.length > GPS_SPEED_SAMPLES) gpsSpeedBuffer.shift();
+  }
+  updateGPSDisplay();
+  updateDTGFromGPS();
+  updateSOGFromGPS();
+  // Update tombol GPS
   const btn = document.getElementById('gpsBtn');
-  btn.className = 'hbtn gps-searching';
-  btn.textContent = '📡 SEARCHING...';
-  gpsWatchId = navigator.geolocation.watchPosition(
-    pos => {
-      gpsActive = true;
-      const rawSpeedKts = (pos.coords.speed != null && !isNaN(pos.coords.speed))
-        ? pos.coords.speed * 1.94384 : null;
-      lastGPS = {
-        lat: pos.coords.latitude,
-        lon: pos.coords.longitude,
-        acc: pos.coords.accuracy,
-        speedKts: rawSpeedKts
-      };
-      // Rolling average speed
-      if (rawSpeedKts !== null) {
-        gpsSpeedBuffer.push(rawSpeedKts);
-        if (gpsSpeedBuffer.length > GPS_SPEED_SAMPLES) gpsSpeedBuffer.shift();
-      }
-      updateGPSDisplay();
-      updateDTGFromGPS();
-      updateSOGFromGPS();
-      // Simpan posisi ke NavHubDB
-      try {
-        NavHubDB.saveSetting('gps-last-position', {
-          lat: lastGPS.lat, lon: lastGPS.lon,
-          acc: lastGPS.acc, speedKts: rawSpeedKts,
-          ts: Date.now()
-        });
-        NavHubDB.saveSetting('gps-active', true);
-      } catch(e) {}
-      btn.className = 'hbtn gps-on';
-      btn.textContent = '📡 GPS ON';
-    },
-    err => {
-      toast('GPS ERROR: ' + err.message.substring(0,30));
-      btn.className = 'hbtn';
-      btn.textContent = '📡 GPS';
-      gpsActive = false;
-      try { NavHubDB.saveSetting('gps-active', false); } catch(e) {}
-    },
-    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
-  );
+  btn.className = 'hbtn gps-on';
+  btn.textContent = '📡 GPS ON';
 }
 
 function stopGPS() {
-  if (gpsWatchId !== null) navigator.geolocation.clearWatch(gpsWatchId);
-  gpsWatchId = null; gpsActive = false; lastGPS = null; gpsSpeedBuffer = [];
-  document.getElementById('gpsBtn').className = 'hbtn';
-  document.getElementById('gpsBtn').textContent = '📡 GPS';
-  document.getElementById('gpsBadge').classList.remove('show');
-  try { NavHubDB.saveSetting('gps-active', false); } catch(e) {}
-  toast('GPS OFF');
+  // Legacy — tidak dipakai, GPS dikontrol dari NavHub
+  try { window.parent.postMessage({type:'navhub-gps-toggle'},'*'); } catch(e) {}
+}
+
+function startGPS() {
+  // Legacy — tidak dipakai
+  toggleGPS();
 }
 
 function updateGPSDisplay() {
