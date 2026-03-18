@@ -453,14 +453,7 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
       </div>
     </div>
 
-    <!-- Upload Zone (hidden by default kalau sudah ada data) -->
-    <div class="cd-zone" id="cd-zone" style="display:block;"
-         onclick="document.getElementById('cd-file-in').click()"
-         ondragover="cdDragOver(event)" ondragleave="cdDragLeave(event)" ondrop="cdDrop(event)">
-      <div class="cd-zone-icon">📂</div>
-      <div class="cd-zone-txt" id="cd-zone-txt">TAP ATAU DROP FILE DI SINI</div>
-      <div class="cd-zone-hint">Format: .json · Chart Index PLI / DISHIDROS</div>
-    </div>
+    <!-- Upload Chart -->
     <input type="file" id="cd-file-in" accept=".json" style="display:none" onchange="cdLoadFile(this)">
 
     <!-- Info -->
@@ -484,8 +477,11 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
 
     <!-- Actions Chart -->
     <div style="display:flex;gap:6px;">
-      <button class="cd-btn" id="cd-upload-btn" onclick="cdToggleUpload()" style="display:none;flex:1;background:transparent;border-color:var(--border2);color:var(--muted2);">
+      <button class="cd-btn" id="cd-upload-btn" onclick="document.getElementById('cd-file-in').click()" style="display:none;flex:1;background:transparent;border-color:var(--border2);color:var(--muted2);">
         ⬆ &nbsp;GANTI DATA
+      </button>
+      <button class="cd-btn" id="cd-upload-first-btn" onclick="document.getElementById('cd-file-in').click()" style="display:block;flex:1;background:transparent;border-color:var(--border2);color:var(--muted2);">
+        ⬆ &nbsp;UPLOAD JSON
       </button>
       <button class="cd-btn danger" id="cd-clear-btn" onclick="cdClearData()" style="display:none;flex:1;">
         🗑 &nbsp;HAPUS DATA
@@ -508,18 +504,10 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
     <!-- GPX List -->
     <div id="gpx-list" style="margin-bottom:8px;display:none;"></div>
 
-    <!-- GPX Upload Zone (hidden by default, tampil kalau tidak ada data) -->
-    <div class="cd-zone" id="gpx-zone" style="margin-bottom:10px;display:none;"
-         onclick="document.getElementById('gpx-file-in').click()"
-         ondragover="gpxDragOver(event)" ondragleave="gpxDragLeave(event)" ondrop="gpxDrop(event)">
-      <div class="cd-zone-icon">🛤</div>
-      <div class="cd-zone-txt" id="gpx-zone-txt">TAP ATAU DROP FILE GPX</div>
-      <div class="cd-zone-hint">Format: .gpx · Waypoint & Track</div>
-    </div>
+    <!-- GPX Actions -->
     <input type="file" id="gpx-file-in" accept=".gpx" style="display:none" onchange="gpxLoadFile(this)">
-
     <div style="display:flex;gap:6px;margin-top:4px;">
-      <button class="cd-btn" id="gpx-upload-btn" onclick="gpxToggleUpload()" style="flex:1;background:transparent;border-color:var(--border2);color:var(--muted2);">
+      <button class="cd-btn" id="gpx-upload-btn" onclick="document.getElementById('gpx-file-in').click()" style="flex:1;background:transparent;border-color:var(--border2);color:var(--muted2);">
         ⬆ &nbsp;UPLOAD GPX
       </button>
       <button class="cd-btn danger" id="gpx-clear-btn" onclick="gpxClearAll()" style="display:none;flex:1;">
@@ -871,17 +859,6 @@ function toggleCDPanel() {
   }
 }
 
-// ── Drag & Drop Chart ──
-function cdDragOver(e) { e.preventDefault(); document.getElementById('cd-zone').classList.add('drag'); }
-function cdDragLeave(e){ document.getElementById('cd-zone').classList.remove('drag'); }
-function cdDrop(e) {
-  e.preventDefault(); document.getElementById('cd-zone').classList.remove('drag');
-  const file = e.dataTransfer.files[0]; if(file) cdProcessFile(file);
-}
-function cdLoadFile(input) {
-  const file = input.files[0]; if(file) cdProcessFile(file); input.value='';
-}
-
 // ── Process + Save Chart JSON ──
 function cdProcessFile(file) {
   document.getElementById('cd-zone').querySelector('.cd-zone-txt').textContent = 'MEMPROSES...';
@@ -922,7 +899,9 @@ async function cdRefreshUI() {
   document.getElementById('cd-open-btn') && (document.getElementById('cd-open-btn').style.display = 'none');
     document.getElementById('cd-clear-btn').style.display = 'none';
     document.getElementById('cd-upload-btn').style.display = 'none';
-    document.getElementById('cd-zone').style.display = 'block';
+    document.getElementById('cd-upload-first-btn').style.display = 'block';
+    document.getElementById('cd-clear-btn').style.display = 'none';
+    document.getElementById('cd-open-btn') && (document.getElementById('cd-open-btn').style.display = 'none');
     btn.classList.remove('has-data');
     return;
   }
@@ -956,15 +935,9 @@ async function cdRefreshUI() {
   }).join('');
   document.getElementById('cd-zone').style.display = 'none';
   document.getElementById('cd-upload-btn').style.display = 'block';
+  document.getElementById('cd-upload-first-btn').style.display = 'none';
   document.getElementById('cd-clear-btn').style.display = 'block';
   btn.classList.add('has-data');
-}
-
-function cdToggleUpload() {
-  const zone = document.getElementById('cd-zone');
-  const isVisible = zone.style.display !== 'none';
-  zone.style.display = isVisible ? 'none' : 'block';
-  document.getElementById('cd-upload-btn').textContent = isVisible ? '⬆ \u00a0GANTI DATA' : '✕ \u00a0TUTUP';
 }
 
 async function cdClearData() {
@@ -978,17 +951,6 @@ async function cdClearData() {
 /* ══════════════════════════════════════════
    GPX DATA PANEL
 ══════════════════════════════════════════ */
-// ── Drag & Drop GPX ──
-function gpxDragOver(e){ e.preventDefault(); document.getElementById('gpx-zone').classList.add('drag'); }
-function gpxDragLeave(e){ document.getElementById('gpx-zone').classList.remove('drag'); }
-function gpxDrop(e) {
-  e.preventDefault(); document.getElementById('gpx-zone').classList.remove('drag');
-  const file = e.dataTransfer.files[0]; if(file) gpxProcessFile(file);
-}
-function gpxLoadFile(input) {
-  const file = input.files[0]; if(file) gpxProcessFile(file); input.value='';
-}
-
 // ── Process + Save GPX (upload manual → slot 'main') ──
 function gpxProcessFile(file) {
   document.getElementById('gpx-zone-txt').textContent = 'MEMPROSES...';
@@ -1024,8 +986,6 @@ async function gpxRefreshUI() {
   const sub = document.getElementById('gpx-st-sub');
   const listEl = document.getElementById('gpx-list');
   const clearBtn = document.getElementById('gpx-clear-btn');
-  const zone = document.getElementById('gpx-zone');
-  const uploadBtn = document.getElementById('gpx-upload-btn');
 
   if (!valid.length) {
     dot.className = 'cd-st-dot';
@@ -1034,8 +994,6 @@ async function gpxRefreshUI() {
     listEl.style.display = 'none';
     listEl.innerHTML = '';
     clearBtn.style.display = 'none';
-    zone.style.display = 'block'; // langsung tampil kalau kosong
-    uploadBtn.style.display = 'none';
     return;
   }
 
@@ -1044,8 +1002,6 @@ async function gpxRefreshUI() {
   sub.textContent = 'Tersimpan di NavHub storage';
   clearBtn.style.display = 'block';
   listEl.style.display = 'block';
-  zone.style.display = 'none'; // sembunyi kalau sudah ada data
-  uploadBtn.style.display = 'block';
 
   listEl.innerHTML = valid.map(rec => {
     const name = rec.routeName || rec.fileName || rec.id;
@@ -1062,12 +1018,6 @@ async function gpxRefreshUI() {
   }).join('');
 }
 
-function gpxToggleUpload() {
-  const zone = document.getElementById('gpx-zone');
-  const isVisible = zone.style.display !== 'none';
-  zone.style.display = isVisible ? 'none' : 'block';
-  document.getElementById('gpx-upload-btn').textContent = isVisible ? '⬆ \u00a0UPLOAD GPX' : '✕ \u00a0TUTUP';
-}
 
 async function gpxDownloadSlot(id) {
   const rec = await NavHubDB.getGPX(id);
