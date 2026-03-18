@@ -186,20 +186,24 @@ body.night .go-btn{background:var(--accent);}
 
 /* DASHBOARD */
 #dash{flex-shrink:0;background:var(--panel);border-top:1px solid var(--border2);
-  padding:8px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;z-index:490;}
+  padding:8px 16px;display:flex;gap:16px;align-items:center;z-index:490;}
 .ds{text-align:center;flex:1;min-width:60px;}
 .ds-lbl{font-family:var(--fmono);font-size:7px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;display:block;}
 .ds-val{font-family:var(--fhud);font-size:20px;color:var(--accent);line-height:1;}
 .ds-unit{font-family:var(--fmono);font-size:8px;color:var(--muted2);}
 .ds-sep{width:1px;height:30px;background:var(--border);flex-shrink:0;}
 
-/* GPS BADGE */
-#gpsBadge{flex-shrink:0;background:var(--adim);border:1px solid var(--accent);
-  border-radius:8px;padding:4px 10px;display:none;flex-direction:column;gap:1px;}
+/* GPS BAR */
+#gpsBadge{flex-shrink:0;background:var(--adim);border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);padding:3px 14px;display:none;
+  align-items:center;gap:10px;flex-wrap:nowrap;overflow:hidden;}
 #gpsBadge.show{display:flex;}
-.gps-coord{font-family:var(--fmono);font-size:9px;color:var(--accent);}
-.gps-acc{font-family:var(--fmono);font-size:7px;color:var(--muted2);}
-.gps-spd{font-family:var(--fhud);font-size:13px;color:var(--accent);line-height:1;}
+.gps-coord{font-family:var(--fmono);font-size:9px;color:var(--accent);white-space:nowrap;}
+.gps-acc{font-family:var(--fmono);font-size:8px;color:var(--muted2);white-space:nowrap;}
+.gps-spd{font-family:var(--fhud);font-size:15px;color:var(--accent);line-height:1;white-space:nowrap;}
+.gps-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 6px var(--accent);flex-shrink:0;animation:gpsPulse 1.5s infinite;}
+@keyframes gpsPulse{0%,100%{opacity:1;}50%{opacity:.3;}}
 
 /* STATUS BAR */
 #statusBar{flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);
@@ -387,16 +391,18 @@ body.night .go-btn{background:var(--accent);}
     </table>
   </div>
 
+  <!-- GPS BAR -->
+  <div id="gpsBadge">
+    <div class="gps-dot"></div>
+    <span class="gps-coord" id="gpsLat">—</span>
+    <span class="gps-coord" id="gpsLon">—</span>
+    <span style="flex:1"></span>
+    <span class="gps-spd" id="gpsSpd">—</span>
+    <span class="gps-acc" id="gpsAcc">KTS · ACC ±—m</span>
+  </div>
+
   <!-- DASHBOARD -->
   <div id="dash">
-    <div id="gpsBadge">
-      <div class="gps-coord" id="gpsLat">—</div>
-      <div class="gps-coord" id="gpsLon">—</div>
-      <div style="display:flex;align-items:baseline;gap:5px;">
-        <span class="gps-spd" id="gpsSpd">—</span>
-        <span class="gps-acc" id="gpsAcc">KTS · ACC ±—m</span>
-      </div>
-    </div>
     <div class="ds">
       <span class="ds-lbl">Remaining</span>
       <span class="ds-val" id="totalDist">0.00</span>
