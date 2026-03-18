@@ -487,11 +487,6 @@ fitCtrl.onAdd=function(){
 };
 fitCtrl.addTo(map);
 
-window.addEventListener('message',e=>{
-  if(e.data&&(e.data.type==='night'||e.data.type==='navhub-night'))
-    document.body.classList.toggle('night',e.data.value??e.data.night);
-});
-
 /* ─── TOAST ─── */
 function toast(m){const i=document.getElementById('ti');i.textContent=m;i.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>i.classList.remove('show'),2500);}
 
@@ -850,52 +845,46 @@ async function deleteChain(id){
   renderSavedTab();
 }
 
-/* ─── VESSEL POSITION (dari NavHubDB) ─── */
+/* ─── VESSEL POSITION (dari NavHub parent via postMessage) ─── */
 let vesselMarker = null;
-let vesselPollInterval = null;
+let vesselStaleTimer = null;
 
-function startVesselTracking() {
-  if (vesselPollInterval) return;
-  pollVesselPosition(); // langsung cek sekali
-  vesselPollInterval = setInterval(pollVesselPosition, 5000);
-}
+window.addEventListener('message', e => {
+  if (!e.data || !e.data.type) return;
+  if (e.data.type === 'night' || e.data.type === 'navhub-night')
+    document.body.classList.toggle('night', e.data.value ?? e.data.night);
+  if (e.data.type === 'gps-update')
+    updateVesselMarker(e.data);
+});
 
-function stopVesselTracking() {
-  if (vesselPollInterval) clearInterval(vesselPollInterval);
-  vesselPollInterval = null;
-  if (vesselMarker) { map.removeLayer(vesselMarker); vesselMarker = null; }
-}
+function updateVesselMarker(data) {
+  if (!data.lat || !data.lon) return;
+  // Reset stale timer — kalau 30 detik tidak ada update, hapus marker
+  clearTimeout(vesselStaleTimer);
+  vesselStaleTimer = setTimeout(() => {
+    if (vesselMarker) { map.removeLayer(vesselMarker); vesselMarker = null; }
+  }, 30000);
 
-async function pollVesselPosition() {
-  try {
-    const pos = await NavHubDB.getSetting('gps-last-position', null);
-    if (!pos || !pos.lat || !pos.lon) return;
-    // Abaikan posisi yang lebih dari 5 menit lalu
-    if (Date.now() - pos.ts > 5 * 60 * 1000) {
-      if (vesselMarker) { map.removeLayer(vesselMarker); vesselMarker = null; }
-      return;
-    }
-    const spdTxt = pos.speedKts != null ? `${pos.speedKts.toFixed(1)} kts` : '';
-    const accTxt = pos.acc ? `±${Math.round(pos.acc)}m` : '';
-    const html = `<div style="pointer-events:none;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px;">
-      <div style="font-size:18px;line-height:1;filter:drop-shadow(0 0 4px rgba(0,212,170,.8));">⬡</div>
-      <div style="background:rgba(4,16,28,.9);border:1px solid #00d4aa;color:#00d4aa;font-family:monospace;font-size:8px;padding:1px 5px;border-radius:3px;white-space:nowrap;">${spdTxt}${spdTxt&&accTxt?' · ':''}${accTxt}</div>
-    </div>`;
-    const icon = L.divIcon({className:'',html,iconSize:[0,0],iconAnchor:[0,0]});
-    if (vesselMarker) {
-      vesselMarker.setLatLng([pos.lat, pos.lon]);
-      vesselMarker.setIcon(icon);
-    } else {
-      vesselMarker = L.marker([pos.lat, pos.lon], {icon, interactive:false, zIndexOffset:2000}).addTo(map);
-    }
-  } catch(e) {}
+  const spdTxt = data.speedKts != null ? `${data.speedKts.toFixed(1)} kts` : '';
+  const accTxt = data.acc ? `±${Math.round(data.acc)}m` : '';
+  const label = [spdTxt, accTxt].filter(Boolean).join(' · ');
+  const html = `<div style="pointer-events:none;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px;">
+    <div style="font-size:20px;line-height:1;filter:drop-shadow(0 0 6px rgba(0,212,170,.9));">⬡</div>
+    ${label ? `<div style="background:rgba(4,16,28,.9);border:1px solid #00d4aa;color:#00d4aa;font-family:monospace;font-size:8px;padding:2px 6px;border-radius:3px;white-space:nowrap;">${label}</div>` : ''}
+  </div>`;
+  const icon = L.divIcon({className:'',html,iconSize:[0,0],iconAnchor:[0,0]});
+  if (vesselMarker) {
+    vesselMarker.setLatLng([data.lat, data.lon]);
+    vesselMarker.setIcon(icon);
+  } else {
+    vesselMarker = L.marker([data.lat, data.lon], {icon, interactive:false, zIndexOffset:2000}).addTo(map);
+  }
 }
 
 /* ─── INIT ─── */
 document.addEventListener('DOMContentLoaded',()=>{
   autoLoadChartData();
   syncRouteBtn();
-  startVesselTracking();
 });
 </script>
 </body>
