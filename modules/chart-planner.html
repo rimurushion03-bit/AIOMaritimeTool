@@ -474,6 +474,7 @@ let chainMode=false,chainFinished=false,intersectVisible=null;
 let routeLayer=null,wpMarkers=[];
 let routeVisible=false;
 let fbToggleState=false,toastT;
+let labelsVisible=true; // kontrol label zoom
 
 /* ─── MAP ─── */
 const map=L.map('map',{center:[-2,118],zoom:5,zoomControl:false,attributionControl:false});
@@ -486,6 +487,72 @@ fitCtrl.onAdd=function(){
   L.DomEvent.on(b,'click',L.DomEvent.stopPropagation);L.DomEvent.on(b,'click',fitVisible);return b;
 };
 fitCtrl.addTo(map);
+
+// Hide/show label berdasarkan zoom
+const LABEL_ZOOM_THRESHOLD = 8;
+map.on('zoomend', () => {
+  const z = map.getZoom();
+  const show = z >= LABEL_ZOOM_THRESHOLD;
+  if (show === labelsVisible) return;
+  labelsVisible = show;
+  // Toggle chain label markers
+  if (window._cl) window._cl.forEach(l => {
+    const el = l.getElement();
+    if (el) el.style.display = show ? '' : 'none';
+  });
+  // Toggle waypoint route markers
+  wpMarkers.forEach(m => {
+    const el = m.getElement();
+    if (el) el.style.display = show ? '' : 'none';
+  });
+});
+
+/* ─── PERSIST STATE ─── */
+async function persistState(){
+  try{
+    await NavHubDB.saveSetting('cp-state',{
+      chain:[...chain],
+      chainFinished,
+      activeGpxId: window._activeGpxId||null,
+      waypoints: waypoints.map(w=>({name:w.name,lat:w.lat,lon:w.lon})),
+    });
+  }catch(e){}
+}
+
+async function restoreState(){
+  try{
+    const s=await NavHubDB.getSetting('cp-state',null);
+    if(!s)return;
+    // Restore chain
+    if(s.chain&&s.chain.length){
+      s.chain.forEach(uid=>{if(charts.find(c=>c.uid===uid))chain.push(uid);});
+      chainFinished=s.chainFinished||false;
+      renderMap();renderChainList();renderText();
+      if(chain.length&&sheetCol)toggleSheet();
+    }
+    // Restore GPX route
+    if(s.activeGpxId){
+      window._activeGpxId=s.activeGpxId;
+      await loadGPXSlot(s.activeGpxId);
+    } else if(s.waypoints&&s.waypoints.length){
+      // fallback: restore dari waypoints tersimpan
+      waypoints=s.waypoints.map(w=>({...w}));
+      renderWpList();
+      if(waypoints.length){
+        routeLayer=L.polyline(waypoints.map(w=>[w.lat,w.lon]),{color:'#00d4aa',weight:2.5,dashArray:'8,4',opacity:.9}).addTo(map);
+        waypoints.forEach((wp,i)=>{
+          const mk=L.marker([wp.lat,wp.lon],{icon:L.divIcon({className:'',html:wpMarkerHtml(i,wp.name),iconSize:[0,0],iconAnchor:[0,0]}),interactive:false});
+          mk.addTo(map);wpMarkers.push(mk);
+        });
+        routeVisible=true;syncRouteBtn();
+      }
+    }
+  }catch(e){}
+}
+
+function wpMarkerHtml(i,name){
+  return`<div style="pointer-events:none;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center"><div style="background:rgba(4,16,28,.88);border:1px solid #00d4aa;color:#00d4aa;font-family:monospace;font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;white-space:nowrap;margin-bottom:2px">${i+1}. ${name}</div><div style="width:6px;height:6px;background:#00d4aa;border-radius:50%"></div></div>`;
+}
 
 /* ─── TOAST ─── */
 function toast(m){const i=document.getElementById('ti');i.textContent=m;i.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>i.classList.remove('show'),2500);}
@@ -501,22 +568,26 @@ async function autoLoadChartData(){
   const rec=await NavHubDB.getChartData();
   if(!rec){setTimeout(()=>toast('TIP: UPLOAD JSON DI NAVHUB → SIDEBAR'),1000);return false;}
   showLd('Auto-loading chart data...');
-  try{parseData(JSON.parse(rec.raw));return true;}
-  catch(e){hideLd();toast('DB DATA ERROR');return false;}
+  try{
+    await parseData(JSON.parse(rec.raw));
+    return true;
+  }catch(e){hideLd();toast('DB DATA ERROR');return false;}
 }
 
 /* ─── PARSE DATA ─── */
 function parseData(json){
-  showLd('Memproses geometri...');const layers=json.layers||json;charts=[];
-  for(const[ln,recs]of Object.entries(layers)){
-    for(const rec of recs){
-      const a=rec.attributes||rec,g=rec.geometry;if(!g?.paths?.[0])continue;
-      const pts=g.paths[0],lons=pts.map(p=>p[0]),lats=pts.map(p=>p[1]);
-      charts.push({uid:ln+'_'+a.OBJECTID,layer:ln.toUpperCase(),attr:a,
-        bbox:{minLon:Math.min(...lons),maxLon:Math.max(...lons),minLat:Math.min(...lats),maxLat:Math.max(...lats)},rect:null});
+  return new Promise(resolve=>{
+    showLd('Memproses geometri...');const layers=json.layers||json;charts=[];
+    for(const[ln,recs]of Object.entries(layers)){
+      for(const rec of recs){
+        const a=rec.attributes||rec,g=rec.geometry;if(!g?.paths?.[0])continue;
+        const pts=g.paths[0],lons=pts.map(p=>p[0]),lats=pts.map(p=>p[1]);
+        charts.push({uid:ln+'_'+a.OBJECTID,layer:ln.toUpperCase(),attr:a,
+          bbox:{minLon:Math.min(...lons),maxLon:Math.max(...lons),minLat:Math.min(...lats),maxLat:Math.max(...lats)},rect:null});
+      }
     }
-  }
-  setTimeout(()=>{renderMap();renderText();hideLd();if(charts.length)fitVisible();},30);
+    setTimeout(()=>{renderMap();renderText();hideLd();if(charts.length)fitVisible();resolve();},30);
+  });
 }
 
 /* ─── MAP RENDER ─── */
@@ -636,7 +707,7 @@ function finishChain(){
 }
 function moveChain(uid,d){const i=chain.indexOf(uid);if(i<0)return;const ni=i+d;if(ni<0||ni>=chain.length)return;[chain[i],chain[ni]]=[chain[ni],chain[i]];renderChainList();}
 function removeFromChain(uid){chain=chain.filter(u=>u!==uid);const c=charts.find(ch=>ch.uid===uid);if(c?.rect){const col=LC[c.layer]||{s:'#fff'};c.rect.setStyle({color:col.s,weight:1.5,dashArray:'5,4',fillColor:col.s,fillOpacity:.08});}renderChainList();renderText();}
-function clearChain(){chain.forEach(uid=>{const c=charts.find(ch=>ch.uid===uid);if(c?.rect){const col=LC[c.layer]||{s:'#fff'};c.rect.setStyle({color:col.s,weight:1.5,dashArray:'5,4',fillColor:col.s,fillOpacity:.08});}});chain=[];intersectVisible=null;chainFinished=false;document.getElementById('chainDoneBtn').classList.remove('show');if(window._cl){window._cl.forEach(l=>map.removeLayer(l));window._cl=[];}renderChainList();renderText();renderMap();document.getElementById('exportText').value='';}
+function clearChain(){chain.forEach(uid=>{const c=charts.find(ch=>ch.uid===uid);if(c?.rect){const col=LC[c.layer]||{s:'#fff'};c.rect.setStyle({color:col.s,weight:1.5,dashArray:'5,4',fillColor:col.s,fillOpacity:.08});}});chain=[];intersectVisible=null;chainFinished=false;document.getElementById('chainDoneBtn').classList.remove('show');if(window._cl){window._cl.forEach(l=>map.removeLayer(l));window._cl=[];}renderChainList();renderText();renderMap();document.getElementById('exportText').value='';persistState();}
 function renderChainList(){
   const list=document.getElementById('chainList'),empty=document.getElementById('chainEmpty');
   document.getElementById('chainCnt').textContent=chain.length+' peta';
@@ -647,6 +718,7 @@ function renderChainList(){
   }).join('');
   if(activeTab==='exp')updateExport();
   if(detailUid)syncDetailChainBtn();
+  persistState();
 }
 
 /* ─── EXPORT ─── */
@@ -772,9 +844,11 @@ async function loadGPXSlot(id){
   renderWpList();
   const pts=(rec.trackPoints&&rec.trackPoints.length)?rec.trackPoints:waypoints;
   if(pts.length)routeLayer=L.polyline(pts.map(p=>[p.lat,p.lon]),{color:'#00d4aa',weight:2.5,dashArray:'8,4',opacity:.9}).addTo(map);
-  waypoints.forEach((wp,i)=>{const mk=L.marker([wp.lat,wp.lon],{icon:L.divIcon({className:'',html:`<div style="pointer-events:none;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center"><div style="background:rgba(4,16,28,.88);border:1px solid #00d4aa;color:#00d4aa;font-family:monospace;font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;white-space:nowrap;margin-bottom:2px">${i+1}. ${wp.name}</div><div style="width:6px;height:6px;background:#00d4aa;border-radius:50%"></div></div>`,iconSize:[0,0],iconAnchor:[0,0]}),interactive:false});mk.addTo(map);wpMarkers.push(mk);});
+  waypoints.forEach((wp,i)=>{const mk=L.marker([wp.lat,wp.lon],{icon:L.divIcon({className:'',html:wpMarkerHtml(i,wp.name),iconSize:[0,0],iconAnchor:[0,0]}),interactive:false});mk.addTo(map);wpMarkers.push(mk);});
   routeVisible=true;syncRouteBtn();
   if(routeLayer)map.fitBounds(routeLayer.getBounds(),{padding:[30,30]});
+  window._activeGpxId=id;
+  persistState();
   toast(`GPX LOADED · ${waypoints.length} WPT`);
   document.getElementById('wpPanel').classList.remove('show');
 }
@@ -802,23 +876,33 @@ async function saveChain(){
 async function renderSavedTab(){
   const list=document.getElementById('savedList');
   const rows=await NavHubDB.getAllRoutes();
-  if(!rows.length){
+  // Filter hanya chain (bukan pm_ routes)
+  const chains=rows.filter(r=>r.id.startsWith('chain_'));
+  if(!chains.length){
     list.innerHTML='<div class="sv-empty">Belum ada chain tersimpan.<br>Susun chain lalu tap SAVE.</div>';
     return;
   }
-  rows.sort((a,b)=>b.date.localeCompare(a.date));
-  list.innerHTML=rows.map(r=>{
+  chains.sort((a,b)=>b.date.localeCompare(a.date));
+  list.innerHTML=chains.map(r=>{
     const d=new Date(r.date);
     const ds=d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+    const isLoaded=chain.length>0&&r.chain&&r.chain.every(uid=>chain.includes(uid))&&r.chain.length===chain.length;
     return`<div class="sv-item">
       <div class="sv-inf" onclick="loadChain('${r.id}')">
-        <div class="sv-name">${r.name}</div>
+        <div class="sv-name">${isLoaded?'▶ ':''}${r.name}</div>
         <div class="sv-meta">${r.chartCount} peta &nbsp;·&nbsp; ${ds}</div>
       </div>
       <button class="sv-load" onclick="loadChain('${r.id}')">⬆ LOAD</button>
+      ${isLoaded?`<button class="sv-load" style="border-color:var(--orange);color:var(--orange);" onclick="unloadChain()">⬇ UNLOAD</button>`:''}
       <button class="sv-del" onclick="deleteChain('${r.id}')">✕</button>
     </div>`;
   }).join('');
+}
+
+function unloadChain(){
+  clearChain();
+  toast('CHAIN DIUNLOAD DARI PETA');
+  renderSavedTab();
 }
 
 async function loadChain(id){
@@ -882,9 +966,10 @@ function updateVesselMarker(data) {
 }
 
 /* ─── INIT ─── */
-document.addEventListener('DOMContentLoaded',()=>{
-  autoLoadChartData();
+document.addEventListener('DOMContentLoaded',async()=>{
+  await autoLoadChartData();
   syncRouteBtn();
+  await restoreState();
 });
 </script>
 </body>
