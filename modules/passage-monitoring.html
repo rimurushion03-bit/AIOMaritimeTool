@@ -411,7 +411,8 @@ body.night .go-btn{background:var(--accent);}
     <div class="ds-sep"></div>
     <div class="ds">
       <span class="ds-lbl">Final ETA</span>
-      <span class="ds-val" id="etaDisplay" style="font-size:14px;color:var(--accent);">-- : --</span>
+      <span class="ds-val" id="etaDate" style="font-size:11px;color:var(--accent);display:block;line-height:1.3;">--</span>
+      <span class="ds-val" id="etaTime" style="font-size:13px;color:var(--accent);display:block;line-height:1.2;">-- : --</span>
     </div>
   </div>
 
@@ -1210,9 +1211,16 @@ function calculateAll() {
   if (dDate && dTime) {
     const dep = new Date(dDate + 'T' + dTime);
     const final = new Date(dep.getTime() + hours * 3600000);
-    document.getElementById('etaDisplay').textContent = final.toLocaleString('en-GB', {
-      day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:false
-    });
+    // Timezone offset string misal GMT+8
+    const tzOffset = -final.getTimezoneOffset();
+    const tzSign = tzOffset >= 0 ? '+' : '-';
+    const tzHr = Math.floor(Math.abs(tzOffset) / 60);
+    const tzStr = `GMT${tzSign}${tzHr}`;
+    document.getElementById('etaDate').textContent = final.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+    document.getElementById('etaTime').textContent = final.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',hour12:false}) + ' ' + tzStr;
+  } else {
+    document.getElementById('etaDate').textContent = '--';
+    document.getElementById('etaTime').textContent = '-- : --';
   }
 
   checkDTGAlerts();
