@@ -278,7 +278,28 @@ body.night .leaflet-tile{filter:brightness(.35) saturate(.2) hue-rotate(330deg);
   color:var(--muted2);font-family:var(--fhud);font-size:16px;letter-spacing:2px;cursor:pointer;margin-top:6px;display:none;transition:all .15s;}
 #wpCb:hover{border-color:var(--danger);color:var(--danger);}
 
-/* LOADING */
+/* TRAIL */
+.tbtn{height:26px;padding:0 10px;border-radius:6px;font-family:var(--fmono);font-size:9px;
+  letter-spacing:1px;cursor:pointer;transition:all .15s;border:1px solid var(--border2);
+  color:var(--muted2);background:transparent;white-space:nowrap;flex-shrink:0;}
+.tbtn:active{opacity:.7;}
+.tbtn.rec{background:rgba(239,68,68,.12);border-color:var(--danger);color:var(--danger);}
+.tbtn.rec-on{background:var(--danger);border-color:var(--danger);color:#fff;animation:recPulse 1s infinite;}
+@keyframes recPulse{0%,100%{opacity:1;}50%{opacity:.6;}}
+.tbtn.on{background:var(--adim);border-color:var(--accent);color:var(--accent);}
+.trail-pts{font-family:var(--fmono);font-size:9px;color:var(--muted2);}
+.trail-item{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);}
+.trail-inf{flex:1;min-width:0;}
+.trail-name{font-family:var(--fmono);font-size:11px;color:var(--text);font-weight:600;}
+.trail-meta{font-family:var(--fmono);font-size:9px;color:var(--muted2);margin-top:2px;}
+.trail-load{padding:4px 10px;background:var(--adim);border:1px solid var(--accent);border-radius:6px;
+  color:var(--accent);font-family:var(--fmono);font-size:9px;cursor:pointer;transition:all .15s;}
+.trail-del{width:26px;height:26px;background:transparent;border:1px solid var(--border2);
+  border-radius:5px;color:var(--muted2);cursor:pointer;font-size:11px;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.trail-del:hover{border-color:var(--danger);color:var(--danger);}
+.trail-empty{text-align:center;padding:20px;font-family:var(--fmono);font-size:10px;color:var(--muted);line-height:1.8;}
+
 #ldo{display:none;position:fixed;inset:0;background:rgba(4,16,28,.93);
   z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
 #ldo.show{display:flex;}
@@ -362,6 +383,7 @@ body.night .leaflet-tile{filter:brightness(.35) saturate(.2) hue-rotate(330deg);
       <div class="stab on" onclick="showTab('chain',this)">CHAIN</div>
       <div class="stab" onclick="showTab('exp',this)">EXPORT</div>
       <div class="stab" onclick="showTab('saved',this)">💾 SAVED</div>
+      <div class="stab" onclick="showTab('trail',this)">〰 TRAIL</div>
     </div>
     <div id="shbd">
       <div id="chainTab">
@@ -383,6 +405,23 @@ body.night .leaflet-tile{filter:brightness(.35) saturate(.2) hue-rotate(330deg);
           <button class="sv-savebtn" onclick="saveChain()">SAVE</button>
         </div>
         <div id="savedList"></div>
+      </div>
+      <div id="trailTab" style="display:none">
+        <!-- Trail Controls -->
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+          <button class="tbtn rec" id="recBtn" onclick="toggleRec()">⏺ REC</button>
+          <span class="trail-pts" id="trailPts">0 pts</span>
+          <div style="flex:1"></div>
+          <button class="tbtn" id="trailVisBtn" onclick="toggleTrailVis()">👁 SHOW</button>
+          <button class="tbtn" onclick="clearTrail()" style="color:var(--danger);border-color:rgba(239,68,68,.3);">🗑 CLEAR</button>
+        </div>
+        <!-- Save row -->
+        <div class="sv-save-row">
+          <input class="sv-input" id="trailNameIn" placeholder="Nama trail (opsional)" maxlength="40">
+          <button class="sv-savebtn" onclick="saveTrail()">SAVE</button>
+        </div>
+        <!-- Saved trails list -->
+        <div id="trailSavedList"></div>
       </div>
     </div>
   </div>
@@ -734,7 +773,18 @@ function copyExport(){updateExport();const txt=document.getElementById('exportTe
 function toggleMode(){mapMode=!mapMode;const b=document.getElementById('modeBtn');document.getElementById('mapWrap').style.display=mapMode?'flex':'none';document.getElementById('txm').classList.toggle('show',!mapMode);b.textContent=mapMode?'🗺 MAP':'📋 TEXT';b.classList.toggle('on',!mapMode);if(mapMode)setTimeout(()=>map.invalidateSize(),50);else renderText();}
 function setFilter(layer,btn){if(layer==='ALL'){activeFilters=new Set(['ALL']);document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}else{activeFilters.delete('ALL');document.querySelector('.fbtn[data-layer="ALL"]').classList.remove('on');if(activeFilters.has(layer)){activeFilters.delete(layer);btn.classList.remove('on');if(activeFilters.size===0){activeFilters.add('ALL');document.querySelector('.fbtn[data-layer="ALL"]').classList.add('on');}}else{activeFilters.add(layer);btn.classList.add('on');}}renderMap();renderText();}
 function toggleSheet(){sheetCol=!sheetCol;document.getElementById('sheet').classList.toggle('exp',!sheetCol);setTimeout(()=>map.invalidateSize(),310);}
-function showTab(t,el){activeTab=t;document.querySelectorAll('.stab').forEach(x=>x.classList.remove('on'));el.classList.add('on');document.getElementById('chainTab').style.display=t==='chain'?'block':'none';document.getElementById('expTab').style.display=t==='exp'?'block':'none';document.getElementById('savedTab').style.display=t==='saved'?'block':'none';if(t==='exp')updateExport();if(t==='saved')renderSavedTab();}
+function showTab(t,el){
+  activeTab=t;
+  document.querySelectorAll('.stab').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('chainTab').style.display=t==='chain'?'block':'none';
+  document.getElementById('expTab').style.display=t==='exp'?'block':'none';
+  document.getElementById('savedTab').style.display=t==='saved'?'block':'none';
+  document.getElementById('trailTab').style.display=t==='trail'?'block':'none';
+  if(t==='exp')updateExport();
+  if(t==='saved')renderSavedTab();
+  if(t==='trail'){renderTrailTab();if(sheetCol)toggleSheet();}
+}
 function showLd(m){document.getElementById('ldo').classList.add('show');document.getElementById('ldtxt').textContent=m||'Memuat...';}
 function hideLd(){document.getElementById('ldo').classList.remove('show');}
 
@@ -933,12 +983,22 @@ async function deleteChain(id){
 let vesselMarker = null;
 let vesselStaleTimer = null;
 
+// Trail state
+let trailRecording = false;
+let trailPoints = []; // [{lat,lon,ts}]
+let trailLayer = null;
+let trailVisible = true;
+const TRAIL_LS_KEY = 'cp-trail-active';
+const TRAIL_LS_SAVES = 'cp-trail-saves';
+
 window.addEventListener('message', e => {
   if (!e.data || !e.data.type) return;
   if (e.data.type === 'night' || e.data.type === 'navhub-night')
     document.body.classList.toggle('night', e.data.value ?? e.data.night);
-  if (e.data.type === 'gps-update')
+  if (e.data.type === 'gps-update') {
     updateVesselMarker(e.data);
+    if (trailRecording) addTrailPoint(e.data.lat, e.data.lon);
+  }
 });
 
 function updateVesselMarker(data) {
@@ -963,6 +1023,141 @@ function updateVesselMarker(data) {
   } else {
     vesselMarker = L.marker([data.lat, data.lon], {icon, interactive:false, zIndexOffset:2000}).addTo(map);
   }
+}
+
+/* ─── TRAIL ─── */
+function toggleTrailBar(){
+  const bar = document.getElementById('trailBar');
+  const btn = document.getElementById('trailBtn');
+  const show = !bar.classList.contains('show');
+  bar.classList.toggle('show', show);
+  btn.classList.toggle('on', show);
+  if(show) restoreTrail();
+}
+
+function toggleRec(){
+  trailRecording = !trailRecording;
+  const btn = document.getElementById('recBtn');
+  btn.className = trailRecording ? 'tbtn rec-on' : 'tbtn rec';
+  btn.textContent = trailRecording ? '⏹ STOP' : '⏺ REC';
+  toast(trailRecording ? '⏺ TRAIL RECORDING...' : '⏹ RECORDING STOPPED');
+}
+
+function addTrailPoint(lat, lon){
+  if(!lat || !lon) return;
+  // Hindari duplikat titik yang terlalu dekat (< ~5m)
+  if(trailPoints.length > 0){
+    const last = trailPoints[trailPoints.length-1];
+    const dlat = Math.abs(lat - last.lat), dlon = Math.abs(lon - last.lon);
+    if(dlat < 0.00005 && dlon < 0.00005) return;
+  }
+  trailPoints.push({lat, lon, ts: Date.now()});
+  renderTrailLayer();
+  updateTrailUI();
+  // Auto-persist ke localStorage
+  try { localStorage.setItem(TRAIL_LS_KEY, JSON.stringify(trailPoints)); } catch(e){}
+}
+
+function renderTrailLayer(){
+  if(trailLayer){ map.removeLayer(trailLayer); trailLayer = null; }
+  if(trailPoints.length < 2) return;
+  trailLayer = L.polyline(
+    trailPoints.map(p => [p.lat, p.lon]),
+    {color:'#00d4aa', weight:2, opacity: trailVisible ? 0.8 : 0, dashArray:null}
+  ).addTo(map);
+}
+
+function toggleTrailVis(){
+  trailVisible = !trailVisible;
+  const btn = document.getElementById('trailVisBtn');
+  btn.textContent = trailVisible ? '👁 SHOW' : '🚫 HIDE';
+  btn.classList.toggle('on', trailVisible);
+  if(trailLayer) trailLayer.setStyle({opacity: trailVisible ? 0.8 : 0});
+}
+
+function updateTrailUI(){
+  document.getElementById('trailPts').textContent = trailPoints.length + ' pts';
+}
+
+function clearTrail(){
+  if(!trailPoints.length){ toast('TRAIL KOSONG'); return; }
+  trailPoints = [];
+  if(trailLayer){ map.removeLayer(trailLayer); trailLayer = null; }
+  updateTrailUI();
+  try { localStorage.removeItem(TRAIL_LS_KEY); } catch(e){}
+  toast('TRAIL DIHAPUS');
+}
+
+function saveTrail(){
+  if(trailPoints.length < 2){ toast('TRAIL TERLALU PENDEK'); return; }
+  const nameIn = document.getElementById('trailNameIn');
+  const name = (nameIn?.value.trim()) ||
+    'Trail ' + new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})
+    + ' ' + new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  let saves=[];
+  try{saves=JSON.parse(localStorage.getItem(TRAIL_LS_SAVES)||'[]');}catch(e){}
+  saves.unshift({id:'trail_'+Date.now(), name, points:trailPoints, savedAt:new Date().toISOString()});
+  if(saves.length>20) saves=saves.slice(0,20);
+  try{localStorage.setItem(TRAIL_LS_SAVES, JSON.stringify(saves));}catch(e){}
+  if(nameIn) nameIn.value='';
+  toast('✓ TRAIL DISIMPAN: '+name);
+  renderTrailTab();
+}
+
+function toggleTrailBar(){} // legacy noop
+
+function renderTrailTab(){
+  updateTrailUI();
+  let saves=[];
+  try{saves=JSON.parse(localStorage.getItem(TRAIL_LS_SAVES)||'[]');}catch(e){}
+  const list=document.getElementById('trailSavedList');
+  if(!saves.length){
+    list.innerHTML='<div class="trail-empty">Belum ada trail tersimpan.<br>Rekam GPS lalu tap SAVE.</div>';
+    return;
+  }
+  list.innerHTML=saves.map(s=>`
+    <div class="trail-item">
+      <div class="trail-inf">
+        <div class="trail-name">${s.name}</div>
+        <div class="trail-meta">${s.points?.length||0} titik</div>
+      </div>
+      <button class="trail-load" onclick="loadTrailById('${s.id}')">LOAD</button>
+      <button class="trail-del" onclick="deleteTrailById('${s.id}');renderTrailTab()">✕</button>
+    </div>`).join('');
+}
+
+function loadTrailById(id){
+  let saves=[];
+  try{saves=JSON.parse(localStorage.getItem(TRAIL_LS_SAVES)||'[]');}catch(e){}
+  const s=saves.find(x=>x.id===id);
+  if(!s||!s.points){toast('DATA TIDAK DITEMUKAN');return;}
+  trailPoints=s.points;
+  renderTrailLayer();
+  updateTrailUI();
+  if(trailLayer)map.fitBounds(trailLayer.getBounds(),{padding:[30,30]});
+  trailVisible=true;
+  document.getElementById('trailVisBtn').textContent='👁 SHOW';
+  document.getElementById('trailVisBtn').classList.add('on');
+  renderTrailTab();
+  toast('✓ TRAIL LOADED: '+s.points.length+' pts');
+}
+
+function deleteTrailById(id){
+  let saves = [];
+  try { saves = JSON.parse(localStorage.getItem(TRAIL_LS_SAVES)||'[]'); } catch(e){}
+  saves = saves.filter(x=>x.id!==id);
+  try { localStorage.setItem(TRAIL_LS_SAVES, JSON.stringify(saves)); } catch(e){}
+}
+
+function restoreTrail(){
+  // Restore trail aktif dari localStorage
+  try {
+    const raw = localStorage.getItem(TRAIL_LS_KEY);
+    if(!raw) return;
+    trailPoints = JSON.parse(raw);
+    renderTrailLayer();
+    updateTrailUI();
+  } catch(e){}
 }
 
 /* ─── INIT ─── */
