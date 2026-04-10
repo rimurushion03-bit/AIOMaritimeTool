@@ -302,6 +302,20 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
 .t-msg{font-family:var(--fmono);font-size:10px;color:var(--accent);letter-spacing:2px;}
 .sb-act.install{background:var(--adim);border-color:var(--accent);color:var(--accent);display:none;}
 .sb-act.install.show{display:block;}
+.update-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);
+  z-index:50001;pointer-events:auto;opacity:0;transition:all .35s cubic-bezier(.175,.885,.32,1.275);
+  display:flex;align-items:center;gap:10px;
+  background:var(--panel);border:1px solid var(--warn);border-radius:12px;
+  padding:10px 14px;box-shadow:0 0 24px rgba(245,158,11,.3);
+  backdrop-filter:blur(16px);white-space:nowrap;}
+.update-toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+.update-toast-dot{width:6px;height:6px;border-radius:50%;background:var(--warn);
+  box-shadow:0 0 6px var(--warn);animation:gpsPulse 1.2s infinite;flex-shrink:0;}
+.update-toast-msg{font-family:var(--fmono);font-size:10px;color:var(--warn);letter-spacing:1.5px;}
+.update-toast-btn{padding:5px 12px;background:var(--warn);border:none;border-radius:7px;
+  color:#000;font-family:var(--fhud);font-size:13px;letter-spacing:1px;cursor:pointer;
+  flex-shrink:0;transition:opacity .15s;}
+.update-toast-btn:active{opacity:.7;}
 </style>
 </head>
 <body>
@@ -434,6 +448,14 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
 </div>
 
 <!-- Toast -->
+
+<!-- Update Toast -->
+<div class="update-toast" id="updateToast">
+  <div class="update-toast-dot"></div>
+  <span class="update-toast-msg">UPDATE TERSEDIA</span>
+  <button class="update-toast-btn" onclick="applyUpdate()">RELOAD</button>
+</div>
+
 <div id="toast"><div class="t-inner" id="t-inner"><div class="t-dot"></div><span class="t-msg" id="t-msg"></span></div></div>
 
 <!-- Chart Data Panel -->
@@ -1068,7 +1090,7 @@ if ('serviceWorker' in navigator) {
           const newWorker = reg.installing;
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              toast('UPDATE TERSEDIA · REFRESH UNTUK UPDATE');
+              showUpdateToast();
             }
           });
         });
@@ -1106,6 +1128,26 @@ window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null;
   toast('✓ NAVHUB INSTALLED');
 });
+
+// ── Update Toast ──
+let pendingWorker = null;
+
+function showUpdateToast() {
+  document.getElementById('updateToast').classList.add('show');
+}
+
+function applyUpdate() {
+  document.getElementById('updateToast').classList.remove('show');
+  // Tell SW to skipWaiting then reload
+  if (navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({type: 'SKIP_WAITING'});
+  }
+  // Reload setelah SW aktif
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
+  window.location.reload();
+}
 </script>
 </body>
 </html>
