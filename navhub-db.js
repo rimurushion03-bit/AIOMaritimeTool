@@ -150,36 +150,70 @@ const NavHubDB = (() => {
     return remove(STORES.GPX_FILES, id);
   }
 
-  // Parse raw GPX string → { waypoints, trackPoints }
+
+  // Parse raw GPX string - support wpt (NavHub), rtept (Navionic), trkpt (track)
   function parseGPXString(gpxText) {
     const parser = new DOMParser();
     const xml    = parser.parseFromString(gpxText, 'text/xml');
-    const wpts   = [...xml.querySelectorAll('wpt')].map(w => ({
+
+    // Helper: ambil nama, support <name> dan <n>
+    const getName = (el, i) =>
+      el.querySelector('name')?.textContent ||
+      el.querySelector('n')?.textContent    ||
+      ('WP' + (i + 1));
+
+    // Priority: wpt -> rtept (Navionic route points)
+    let wptEls = [...xml.querySelectorAll('wpt')];
+    if (!wptEls.length) wptEls = [...xml.querySelectorAll('rtept')];
+
+    const wpts = wptEls.map((w, i) => ({
       lat : parseFloat(w.getAttribute('lat')),
       lon : parseFloat(w.getAttribute('lon')),
-      name: w.querySelector('name')?.textContent || '',
-    }));
-    const trkpts = [...xml.querySelectorAll('trkpt')].map(p => ({
+      name: getName(w, i),
+    })).filter(w => !isNaN(w.lat) && !isNaN(w.lon));
+
+    // trackPoints: trkpt, fallback ke rtept kalau tidak ada trk
+    let trkEls = [...xml.querySelectorAll('trkpt')];
+    if (!trkEls.length) trkEls = [...xml.querySelectorAll('rtept')];
+
+    const trkpts = trkEls.map(p => ({
       lat: parseFloat(p.getAttribute('lat')),
       lon: parseFloat(p.getAttribute('lon')),
-    }));
+    })).filter(p => !isNaN(p.lat) && !isNaN(p.lon));
+
     return { waypoints: wpts, trackPoints: trkpts };
   }
 
-  // Generate GPX string dari array waypoints
+  // Generate GPX - format kompatibel Navionic (wpt + rte/rtept + trk)
   function generateGPXString(waypoints, trackName = 'NavHub Route') {
     const dt = new Date().toISOString();
-    let gpx = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="NavHub" xmlns="http://www.topografix.com/GPX/1/1">
-<metadata><name>${trackName}</name><time>${dt}</time></metadata>\n`;
+    let gpx = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    gpx += `<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="NavHub">\n`;
+    gpx += `<metadata><n>${trackName}</n><time>${dt}</time></metadata>\n`;
+
+    // <wpt> - kompatibilitas umum
     waypoints.forEach(wp => {
-      gpx += `<wpt lat="${wp.lat.toFixed(6)}" lon="${wp.lon.toFixed(6)}"><name>${wp.name||''}</name></wpt>\n`;
+      gpx += `<wpt lat="${wp.lat.toFixed(6)}" lon="${wp.lon.toFixed(6)}">`;
+      gpx += `<n>${wp.name || ''}</n>`;
+      gpx += `</wpt>\n`;
     });
-    gpx += `<trk><name>${trackName}</name><trkseg>\n`;
+
+    // <rte> - format Navionic, dibaca Navionics Boating App
+    gpx += `<rte><n>${trackName}</n>\n`;
+    waypoints.forEach(wp => {
+      gpx += `<rtept lat="${wp.lat.toFixed(6)}" lon="${wp.lon.toFixed(6)}">`;
+      gpx += `<n>${wp.name || ''}</n>`;
+      gpx += `</rtept>\n`;
+    });
+    gpx += `</rte>\n`;
+
+    // <trk> - kompatibilitas track recorder / apps lain
+    gpx += `<trk><n>${trackName}</n><trkseg>\n`;
     waypoints.forEach(wp => {
       gpx += `<trkpt lat="${wp.lat.toFixed(6)}" lon="${wp.lon.toFixed(6)}"/>\n`;
     });
     gpx += `</trkseg></trk>\n</gpx>`;
+
     return gpx;
   }
 
