@@ -505,7 +505,7 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
     <div id="gpx-list" style="margin-bottom:8px;display:none;"></div>
 
     <!-- GPX Actions -->
-    <input type="file" id="gpx-file-in" accept=".gpx" style="display:none" onchange="gpxLoadFile(this)">
+    <input type="file" id="gpx-file-in" accept=".gpx,.xml" style="display:none" onchange="gpxLoadFile(this)">
     <div style="display:flex;gap:6px;margin-top:4px;">
       <button class="cd-btn" id="gpx-upload-btn" onclick="document.getElementById('gpx-file-in').click()" style="flex:1;background:transparent;border-color:var(--border2);color:var(--muted2);">
         ⬆ &nbsp;UPLOAD GPX
