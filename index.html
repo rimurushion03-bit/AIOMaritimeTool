@@ -300,6 +300,8 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
 .t-inner.show{opacity:1;transform:translateY(0);}
 .t-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);}
 .t-msg{font-family:var(--fmono);font-size:10px;color:var(--accent);letter-spacing:2px;}
+.sb-act.install{background:var(--adim);border-color:var(--accent);color:var(--accent);display:none;}
+.sb-act.install.show{display:block;}
 </style>
 </head>
 <body>
@@ -366,6 +368,7 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
       <button class="sb-act" id="night-btn" onclick="toggleNight()">🌙 NIGHT</button>
       <button class="sb-act" onclick="toggleFS()">⛶ FULL</button>
     </div>
+    <button class="sb-act install" id="installBtn" onclick="installPWA()" style="width:100%;margin-bottom:8px;">⬇ INSTALL APP</button>
     <div class="sb-copy">HARIYANTO SJ13 · NAVHUB v2.0 · 2025</div>
   </div>
 </aside>
@@ -505,7 +508,7 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
     <div id="gpx-list" style="margin-bottom:8px;display:none;"></div>
 
     <!-- GPX Actions -->
-    <input type="file" id="gpx-file-in" accept=".gpx,.xml" style="display:none" onchange="gpxLoadFile(this)">
+    <input type="file" id="gpx-file-in" accept=".gpx" style="display:none" onchange="gpxLoadFile(this)">
     <div style="display:flex;gap:6px;margin-top:4px;">
       <button class="cd-btn" id="gpx-upload-btn" onclick="document.getElementById('gpx-file-in').click()" style="flex:1;background:transparent;border-color:var(--border2);color:var(--muted2);">
         ⬆ &nbsp;UPLOAD GPX
@@ -1051,6 +1054,57 @@ async function gpxClearData() { await gpxClearAll(); }
 document.addEventListener('DOMContentLoaded', () => {
   cdRefreshUI();
   gpxRefreshUI();
+});
+</script>
+<script>
+// ── PWA: Service Worker Registration ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => {
+        console.log('[NavHub] SW registered:', reg.scope);
+        // Check for updates
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              toast('UPDATE TERSEDIA · REFRESH UNTUK UPDATE');
+            }
+          });
+        });
+      })
+      .catch(err => console.warn('[NavHub] SW failed:', err));
+  });
+}
+
+// ── PWA: Install Prompt ──
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  // Tampilkan tombol install di sidebar
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.classList.add('show');
+});
+
+async function installPWA() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  if (outcome === 'accepted') {
+    toast('✓ NAVHUB TERINSTALL');
+    document.getElementById('installBtn').classList.remove('show');
+    deferredInstallPrompt = null;
+  }
+}
+
+// Sembunyikan tombol setelah app terinstall
+window.addEventListener('appinstalled', () => {
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.classList.remove('show');
+  deferredInstallPrompt = null;
+  toast('✓ NAVHUB INSTALLED');
 });
 </script>
 </body>
