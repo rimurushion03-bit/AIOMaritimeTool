@@ -1498,3 +1498,10 @@ async function fontStrategy(request) {
     return new Response('', {status: 503});
   }
 }
+
+// ── Handle SKIP_WAITING message dari client ──
+self.addEventListener('message', e => {
+  if (e.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
