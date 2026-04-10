@@ -302,6 +302,9 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
 .t-msg{font-family:var(--fmono);font-size:10px;color:var(--accent);letter-spacing:2px;}
 .sb-act.install{background:var(--adim);border-color:var(--accent);color:var(--accent);display:none;}
 .sb-act.install.show{display:block;}
+.sb-act.update{width:100%;margin-bottom:8px;border-color:var(--warn);color:var(--muted2);}
+.sb-act.update:hover{background:rgba(245,158,11,.12);border-color:var(--warn);color:var(--warn);}
+.sb-act.update.checking{color:var(--warn);border-color:var(--warn);animation:recPulse 1s infinite;}
 .update-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);
   z-index:50001;pointer-events:auto;opacity:0;transition:all .35s cubic-bezier(.175,.885,.32,1.275);
   display:flex;align-items:center;gap:10px;
@@ -383,6 +386,7 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
       <button class="sb-act" onclick="toggleFS()">⛶ FULL</button>
     </div>
     <button class="sb-act install" id="installBtn" onclick="installPWA()" style="width:100%;margin-bottom:8px;">⬇ INSTALL APP</button>
+    <button class="sb-act update" id="checkUpdateBtn" onclick="checkUpdate()">🔄 CHECK UPDATE</button>
     <div class="sb-copy">HARIYANTO SJ13 · NAVHUB v2.0 · 2025</div>
   </div>
 </aside>
@@ -1147,6 +1151,31 @@ function applyUpdate() {
     window.location.reload();
   });
   window.location.reload();
+}
+
+// ── Check Update Manual ──
+async function checkUpdate() {
+  const btn = document.getElementById('checkUpdateBtn');
+  btn.classList.add('checking');
+  btn.textContent = '🔄 CHECKING...';
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) { toast('SW TIDAK AKTIF'); btn.classList.remove('checking'); btn.textContent = '🔄 CHECK UPDATE'; return; }
+    await reg.update();
+    // Tunggu sebentar, kalau tidak ada updatefound berarti sudah latest
+    setTimeout(() => {
+      btn.classList.remove('checking');
+      btn.textContent = '🔄 CHECK UPDATE';
+      // Kalau update toast tidak muncul, berarti sudah up to date
+      if (!document.getElementById('updateToast').classList.contains('show')) {
+        toast('✓ NAVHUB UP TO DATE');
+      }
+    }, 3000);
+  } catch(e) {
+    btn.classList.remove('checking');
+    btn.textContent = '🔄 CHECK UPDATE';
+    toast('GAGAL CEK UPDATE');
+  }
 }
 </script>
 </body>
