@@ -646,13 +646,21 @@ tick(); setInterval(tick,1000);
 /* ── NIGHT MODE ── */
 function toggleNight(){
   nightOn=!nightOn;
+  // Visual update langsung — tidak tunggu async apapun
   document.body.classList.toggle('night',nightOn);
   const b=document.getElementById('night-btn');
-  b.classList.toggle('on',nightOn); b.textContent=nightOn?'☀ DAY':'🌙 NIGHT';
-  if (typeof NavHubDB !== 'undefined') NavHubDB.saveSetting('night-mode', nightOn);
-  else localStorage.setItem('nh-night', nightOn?'1':'0');
-  try{ document.getElementById('mod-frame').contentWindow.postMessage({type:'night',value:nightOn},'*'); }catch(e){}
+  b.classList.toggle('on',nightOn);
+  b.textContent=nightOn?'☀ DAY':'🌙 NIGHT';
   toast(nightOn?'NIGHT MODE ON':'DAY MODE');
+  // Broadcast ke iframe
+  try{ document.getElementById('mod-frame').contentWindow.postMessage({type:'navhub-night',night:nightOn},'*'); }catch(e){}
+  // Save async di background — tidak block UI
+  setTimeout(()=>{
+    try{
+      if (typeof NavHubDB !== 'undefined') NavHubDB.saveSetting('night-mode', nightOn);
+      else localStorage.setItem('nh-night', nightOn?'1':'0');
+    }catch(e){}
+  },0);
 }
 // Restore night mode - tunggu DOM ready
 function restoreNightMode() {
