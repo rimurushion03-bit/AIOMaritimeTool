@@ -1018,7 +1018,8 @@ function gpxProcessFile(file) {
         toast('GAGAL: TIDAK ADA WAYPOINT DITEMUKAN');
         return;
       }
-      await NavHubDB.saveGPX('main', {
+      const slotId = 'gpx_' + Date.now();
+      await NavHubDB.saveGPX(slotId, {
         fileName    : file.name,
         routeName   : file.name.replace(/\.(gpx|xml)$/i,''),
         waypoints   : parsed.waypoints,
