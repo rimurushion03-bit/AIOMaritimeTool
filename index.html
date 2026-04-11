@@ -1000,14 +1000,19 @@ async function cdClearData() {
 ══════════════════════════════════════════ */
 // ── Process + Save GPX (upload manual → slot 'main') ──
 function gpxProcessFile(file) {
-  document.getElementById('gpx-zone-txt').textContent = 'MEMPROSES...';
+  if (!file) return;
+  toast('MEMPROSES GPX...');
   const reader = new FileReader();
   reader.onload = async (e) => {
     try {
       const parsed = NavHubDB.parseGPXString(e.target.result);
+      if (!parsed.waypoints.length && !parsed.trackPoints.length) {
+        toast('GAGAL: TIDAK ADA WAYPOINT DITEMUKAN');
+        return;
+      }
       await NavHubDB.saveGPX('main', {
         fileName    : file.name,
-        routeName   : file.name.replace(/\.gpx$/i,''),
+        routeName   : file.name.replace(/\.(gpx|xml)$/i,''),
         waypoints   : parsed.waypoints,
         trackPoints : parsed.trackPoints,
         rawGPX      : e.target.result,
@@ -1016,8 +1021,8 @@ function gpxProcessFile(file) {
       toast(`✓ GPX: ${parsed.waypoints.length} WPT · ${parsed.trackPoints.length} TRK`);
       loaded['chart'] = false;
     } catch(err) {
+      console.error('gpxProcessFile error:', err);
       toast('GAGAL: FILE GPX TIDAK VALID');
-      document.getElementById('gpx-zone-txt').textContent = 'TAP ATAU DROP FILE GPX';
     }
   };
   reader.readAsText(file);
