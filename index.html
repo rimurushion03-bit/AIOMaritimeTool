@@ -483,7 +483,7 @@ body.night #scan-line::after{background:linear-gradient(transparent,rgba(255,34,
     </div>
 
     <!-- Upload Chart -->
-    <input type="file" id="cd-file-in" accept=".json" style="display:none" onchange="cdLoadFile(this)">
+    <input type="file" id="cd-file-in" accept=".json" style="display:none" onchange="cdProcessFile(this.files[0]);this.value=''">
 
     <!-- Info -->
     <div class="cd-info" id="cd-info">
@@ -654,15 +654,33 @@ function toggleNight(){
   try{ document.getElementById('mod-frame').contentWindow.postMessage({type:'night',value:nightOn},'*'); }catch(e){}
   toast(nightOn?'NIGHT MODE ON':'DAY MODE');
 }
-// Restore night mode dari IndexedDB
-if (typeof NavHubDB !== 'undefined') {
-  NavHubDB.getSetting('night-mode', false).then(val => {
-    if(val){ nightOn=true; document.body.classList.add('night'); const b=document.getElementById('night-btn'); b.classList.add('on'); b.textContent='☀ DAY'; }
-  });
-} else {
-  // fallback localStorage
-  if(localStorage.getItem('nh-night')==='1'){ nightOn=true; document.body.classList.add('night'); const b=document.getElementById('night-btn'); b.classList.add('on'); b.textContent='☀ DAY'; }
+// Restore night mode - tunggu DOM ready
+function restoreNightMode() {
+  if (typeof NavHubDB !== 'undefined') {
+    NavHubDB.getSetting('night-mode', false).then(val => {
+      if(val){
+        nightOn=true;
+        document.body.classList.add('night');
+        const b=document.getElementById('night-btn');
+        if(b){ b.classList.add('on'); b.textContent='☀ DAY'; }
+      }
+    }).catch(() => {
+      // fallback localStorage
+      if(localStorage.getItem('nh-night')==='1'){
+        nightOn=true; document.body.classList.add('night');
+        const b=document.getElementById('night-btn');
+        if(b){ b.classList.add('on'); b.textContent='☀ DAY'; }
+      }
+    });
+  } else {
+    if(localStorage.getItem('nh-night')==='1'){
+      nightOn=true; document.body.classList.add('night');
+      const b=document.getElementById('night-btn');
+      if(b){ b.classList.add('on'); b.textContent='☀ DAY'; }
+    }
+  }
 }
+document.addEventListener('DOMContentLoaded', restoreNightMode);
 
 /* ── FULLSCREEN ── */
 function toggleFS(){
