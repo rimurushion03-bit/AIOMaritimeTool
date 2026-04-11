@@ -644,7 +644,13 @@ function tick(){
 tick(); setInterval(tick,1000);
 
 /* ── NIGHT MODE ── */
+let nightDebounce = false;
 function toggleNight(){
+  // Debounce 300ms supaya tidak double-fire dari touch
+  if(nightDebounce) return;
+  nightDebounce = true;
+  setTimeout(()=>{ nightDebounce=false; }, 300);
+
   nightOn=!nightOn;
   // Visual update langsung — tidak tunggu async apapun
   document.body.classList.toggle('night',nightOn);
