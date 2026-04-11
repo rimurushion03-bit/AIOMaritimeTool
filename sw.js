@@ -1392,6 +1392,15 @@ self.addEventListener('install', e => {
     // Cache app shell dulu
     const appCache = await caches.open(CACHE_APP);
     await appCache.addAll(APP_SHELL).catch(err => console.warn('App shell partial:', err));
+    // Cache index.html dengan semua kemungkinan navigation key
+    try {
+      const idx = await fetch('./index.html');
+      if (idx.ok) {
+        await appCache.put('./', idx.clone());
+        await appCache.put('./index.html', idx.clone());
+        await appCache.put(self.registration.scope, idx.clone());
+      }
+    } catch(e) {}
 
     // Cache tiles secara batch kecil supaya tidak overwhelm
     const tileCache = await caches.open(CACHE_TILES);
@@ -1439,12 +1448,53 @@ self.addEventListener('fetch', e => {
     return;
   }
 
+  // Navigation request (PWA launch, reload) - serve dari cache dulu
+  if (e.request.mode === 'navigate') {
+    e.respondWith(navigationStrategy(e.request));
+    return;
+  }
+
   // App files (cache-first)
   if (url.origin === self.location.origin || url.hostname === 'unpkg.com') {
     e.respondWith(appStrategy(e.request));
     return;
   }
 });
+
+// Navigation: cache-first (offline-first), update cache di background
+async function navigationStrategy(request) {
+  // Coba semua kemungkinan cache key untuk index
+  const cached = await caches.match(request)
+    || await caches.match('./index.html')
+    || await caches.match('./')
+    || await caches.match(self.registration.scope);
+
+  // Fetch fresh di background (stale-while-revalidate)
+  fetch(request).then(r => {
+    if (r.ok) caches.open(CACHE_APP).then(c => {
+      c.put(request, r.clone());
+      c.put('./index.html', r.clone());
+      c.put('./', r.clone());
+    });
+  }).catch(() => {});
+
+  if (cached) return cached;
+
+  // Fallback kalau sama sekali belum pernah cache
+  try {
+    const r = await fetch(request);
+    if (r.ok) {
+      const c = await caches.open(CACHE_APP);
+      c.put(request, r.clone());
+    }
+    return r;
+  } catch(e) {
+    return new Response(
+      '<html><body style="background:#04101c;color:#00d4aa;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;gap:12px"><div style="font-size:2rem;letter-spacing:4px">NAVHUB</div><div style="font-size:0.7rem;opacity:0.6">OFFLINE — Buka saat online untuk aktivasi pertama</div></body></html>',
+      {status: 200, headers: {'Content-Type': 'text/html'}}
+    );
+  }
+}
 
 // Cache-first untuk app shell
 async function appStrategy(request) {
