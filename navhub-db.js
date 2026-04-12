@@ -10,19 +10,16 @@ const NavHubDB = (() => {
   const DB_NAME    = 'navhub-db';
   const DB_VERSION = 1;
 
-  // ── Store names ──
   const STORES = {
-    CHART_DATA : 'chart-data',   // JSON index peta navigasi
-    GPX_FILES  : 'gpx-files',    // File GPX (route / waypoints)
-    ROUTES     : 'routes',       // Generated routes dari chart planner
-    SETTINGS   : 'settings',     // App preferences
+    CHART_DATA : 'chart-data',
+    GPX_FILES  : 'gpx-files',
+    ROUTES     : 'routes',
+    SETTINGS   : 'settings',
   };
 
-  // ── Open / Init DB ──
   function openDB() {
     return new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
-
       req.onupgradeneeded = e => {
         const db = e.target.result;
         Object.values(STORES).forEach(name => {
@@ -31,13 +28,11 @@ const NavHubDB = (() => {
           }
         });
       };
-
       req.onsuccess = e => resolve(e.target.result);
       req.onerror   = e => reject(e.target.error);
     });
   }
 
-  // ── Generic CRUD ──
   async function put(storeName, record) {
     const db = await openDB();
     return new Promise((resolve, reject) => {
@@ -125,7 +120,6 @@ const NavHubDB = (() => {
 
   // ── GPX FILES ──
   async function saveGPX(id = 'main', payload) {
-    // payload: { fileName, waypoints[], trackPoints[], rawGPX? }
     await put(STORES.GPX_FILES, {
       id,
       fileName       : payload.fileName || 'route.gpx',
@@ -150,19 +144,16 @@ const NavHubDB = (() => {
     return remove(STORES.GPX_FILES, id);
   }
 
-
-  // Parse raw GPX string - support wpt (NavHub), rtept (Navionic), trkpt (track)
+  // Parse raw GPX string - support wpt, rtept (Navionic), trkpt
   function parseGPXString(gpxText) {
     const parser = new DOMParser();
     const xml    = parser.parseFromString(gpxText, 'text/xml');
 
-    // Helper: ambil nama, support <name> dan <n>
     const getName = (el, i) =>
       el.querySelector('name')?.textContent ||
       el.querySelector('n')?.textContent    ||
       ('WP' + (i + 1));
 
-    // Priority: wpt -> rtept (Navionic route points)
     let wptEls = [...xml.querySelectorAll('wpt')];
     if (!wptEls.length) wptEls = [...xml.querySelectorAll('rtept')];
 
@@ -172,7 +163,6 @@ const NavHubDB = (() => {
       name: getName(w, i),
     })).filter(w => !isNaN(w.lat) && !isNaN(w.lon));
 
-    // trackPoints: trkpt, fallback ke rtept kalau tidak ada trk
     let trkEls = [...xml.querySelectorAll('trkpt')];
     if (!trkEls.length) trkEls = [...xml.querySelectorAll('rtept')];
 
@@ -184,44 +174,33 @@ const NavHubDB = (() => {
     return { waypoints: wpts, trackPoints: trkpts };
   }
 
-  // Generate GPX - format OpenCPN/Navionic kompatibel
-  // <wpt> per WP (marker) + <rte><rtept> (route) dalam satu file
+  // Generate GPX - Navionic/OpenCPN compatible
   function generateGPXString(waypoints, trackName = 'NavHub Route') {
-    const dt = new Date().toISOString();
-    let gpx = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-    gpx += `<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="NavHub">\n`;
-    gpx += `<metadata><n>${trackName}</n><time>${dt}</time></metadata>\n`;
-
-    // <wpt> — marker individual per WP
+    const dt = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+    let gpx = '<?xml version="1.0" encoding="UTF-8" ?>\n';
+    gpx += '<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="NavHub">\n';
+    gpx += '  <metadata>\n    <link href="http://www.navionics.com" />\n  </metadata>\n';
     waypoints.forEach(wp => {
-      const nm = (wp.name || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      gpx += `<wpt lat="${wp.lat.toFixed(6)}" lon="${wp.lon.toFixed(6)}">\n`;
-      gpx += `  <time>${dt}</time>\n`;
-      gpx += `  <n>${nm}</n>\n`;
-      gpx += `  <sym>square</sym>\n`;
-      gpx += `  <type>WPT</type>\n`;
-      gpx += `</wpt>\n`;
-    });
-
-    // <rte> — route
-    gpx += `<rte>\n`;
-    gpx += `  <n>${trackName}</n>\n`;
-    waypoints.forEach(wp => {
-      const nm = (wp.name || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      gpx += `  <rtept lat="${wp.lat.toFixed(6)}" lon="${wp.lon.toFixed(6)}">\n`;
+      const n = (wp.name||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      gpx += `  <wpt lat="${wp.lat.toFixed(6)}" lon="${wp.lon.toFixed(6)}">\n`;
+      gpx += `    <name>${n}</name>\n`;
       gpx += `    <time>${dt}</time>\n`;
-      gpx += `    <n>${nm}</n>\n`;
-      gpx += `    <sym>square</sym>\n`;
-      gpx += `    <type>WPT</type>\n`;
-      gpx += `  </rtept>\n`;
+      gpx += `  </wpt>\n`;
     });
-    gpx += `</rte>\n</gpx>`;
+    gpx += `  <rte>\n    <name>${trackName}</name>\n`;
+    waypoints.forEach(wp => {
+      const n = (wp.name||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      gpx += `    <rtept lat="${wp.lat.toFixed(6)}" lon="${wp.lon.toFixed(6)}">\n`;
+      gpx += `      <name>${n}</name>\n`;
+      gpx += `      <time>${dt}</time>\n`;
+      gpx += `    </rtept>\n`;
+    });
+    gpx += `  </rte>\n</gpx>`;
     return gpx;
   }
 
   // ── ROUTES ──
   async function saveRoute(route) {
-    // route: { id, name, chain[], waypoints[], date }
     const id = route.id || Date.now();
     await put(STORES.ROUTES, { ...route, id, savedAt: new Date().toISOString() });
     return id;
@@ -264,28 +243,21 @@ const NavHubDB = (() => {
     return { usedMB:'?', quotaMB:'?', pct:'?' };
   }
 
-  // ── postMessage helper (child → parent notify) ──
+  // ── postMessage helper ──
   function notifyParent(type, payload = {}) {
     try {
       window.parent.postMessage({ type, ...payload }, '*');
     } catch(e) {}
   }
 
-  // ── Public API ──
   return {
     STORES,
-    // Chart
     saveChartData, getChartData, deleteChartData,
-    // GPX
     saveGPX, getGPX, getAllGPX, deleteGPX,
     parseGPXString, generateGPXString,
-    // Routes
     saveRoute, getRoute, getAllRoutes, deleteRoute,
-    // Settings
     saveSetting, getSetting,
-    // Utils
     getDBSize, notifyParent,
-    // Low-level
     openDB, put, get, getAll, remove, clear,
   };
 
