@@ -185,12 +185,25 @@ const NavHubDB = (() => {
   }
 
   // Generate GPX - format OpenCPN/Navionic kompatibel
-  // Hanya <rte><rtept> tanpa <wpt> standalone — Navionic baca sebagai route bukan marker
+  // <wpt> per WP (marker) + <rte><rtept> (route) dalam satu file
   function generateGPXString(waypoints, trackName = 'NavHub Route') {
     const dt = new Date().toISOString();
     let gpx = `<?xml version="1.0" encoding="UTF-8"?>\n`;
     gpx += `<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="NavHub">\n`;
     gpx += `<metadata><n>${trackName}</n><time>${dt}</time></metadata>\n`;
+
+    // <wpt> — marker individual per WP
+    waypoints.forEach(wp => {
+      const nm = (wp.name || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      gpx += `<wpt lat="${wp.lat.toFixed(6)}" lon="${wp.lon.toFixed(6)}">\n`;
+      gpx += `  <time>${dt}</time>\n`;
+      gpx += `  <n>${nm}</n>\n`;
+      gpx += `  <sym>square</sym>\n`;
+      gpx += `  <type>WPT</type>\n`;
+      gpx += `</wpt>\n`;
+    });
+
+    // <rte> — route
     gpx += `<rte>\n`;
     gpx += `  <n>${trackName}</n>\n`;
     waypoints.forEach(wp => {
