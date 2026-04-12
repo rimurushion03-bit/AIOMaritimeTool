@@ -184,36 +184,25 @@ const NavHubDB = (() => {
     return { waypoints: wpts, trackPoints: trkpts };
   }
 
-  // Generate GPX - format kompatibel Navionic (wpt + rte/rtept + trk)
+  // Generate GPX - format OpenCPN/Navionic kompatibel
+  // Hanya <rte><rtept> tanpa <wpt> standalone — Navionic baca sebagai route bukan marker
   function generateGPXString(waypoints, trackName = 'NavHub Route') {
     const dt = new Date().toISOString();
     let gpx = `<?xml version="1.0" encoding="UTF-8"?>\n`;
     gpx += `<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="NavHub">\n`;
     gpx += `<metadata><n>${trackName}</n><time>${dt}</time></metadata>\n`;
-
-    // <wpt> - kompatibilitas umum
+    gpx += `<rte>\n`;
+    gpx += `  <n>${trackName}</n>\n`;
     waypoints.forEach(wp => {
-      gpx += `<wpt lat="${wp.lat.toFixed(6)}" lon="${wp.lon.toFixed(6)}">`;
-      gpx += `<n>${wp.name || ''}</n>`;
-      gpx += `</wpt>\n`;
+      const nm = (wp.name || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      gpx += `  <rtept lat="${wp.lat.toFixed(6)}" lon="${wp.lon.toFixed(6)}">\n`;
+      gpx += `    <time>${dt}</time>\n`;
+      gpx += `    <n>${nm}</n>\n`;
+      gpx += `    <sym>square</sym>\n`;
+      gpx += `    <type>WPT</type>\n`;
+      gpx += `  </rtept>\n`;
     });
-
-    // <rte> - format Navionic, dibaca Navionics Boating App
-    gpx += `<rte><n>${trackName}</n>\n`;
-    waypoints.forEach(wp => {
-      gpx += `<rtept lat="${wp.lat.toFixed(6)}" lon="${wp.lon.toFixed(6)}">`;
-      gpx += `<n>${wp.name || ''}</n>`;
-      gpx += `</rtept>\n`;
-    });
-    gpx += `</rte>\n`;
-
-    // <trk> - kompatibilitas track recorder / apps lain
-    gpx += `<trk><n>${trackName}</n><trkseg>\n`;
-    waypoints.forEach(wp => {
-      gpx += `<trkpt lat="${wp.lat.toFixed(6)}" lon="${wp.lon.toFixed(6)}"/>\n`;
-    });
-    gpx += `</trkseg></trk>\n</gpx>`;
-
+    gpx += `</rte>\n</gpx>`;
     return gpx;
   }
 
